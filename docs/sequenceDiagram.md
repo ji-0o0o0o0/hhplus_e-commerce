@@ -1,11 +1,11 @@
 # e-commerce  시퀀스 다이어그램 (Sequence Diagrams)
 
-
+---
 
 ## 1. 상품 상세 조회
 
 ### API
-`GET /products/{productId}`
+`GET /api/products/{productId}`
 
 ### 시퀀스 다이어그램
 
@@ -42,7 +42,7 @@ sequenceDiagram
 ## 2. 장바구니 추가
 
 ### API
-`POST /cart/items`
+`POST /api/cart/items`
 
 ### 시퀀스 다이어그램
 
@@ -56,7 +56,7 @@ sequenceDiagram
     participant ProductRepository
     participant DB
 
-    Client->>CartController: POST /cart/items<br/>{userId, productId, quantity}
+    Client->>CartController: POST /cart/items{userId, productId, quantity}
     CartController->>CartService: addCartItem(userId, productId, quantity)
     
     CartService->>ProductService: getProductById(productId)
@@ -102,7 +102,7 @@ sequenceDiagram
 ## 3. 장바구니 삭제
 
 ### API
-`DELETE /cart/items/{cartItemId}`
+`DELETE /api/cart/items/{cartItemId}`
 
 ### 시퀀스 다이어그램
 
@@ -157,7 +157,7 @@ sequenceDiagram
 ## 4. 주문 생성
 
 ### API
-`POST /orders`
+`POST /api/orders`
 
 ### 시퀀스 다이어그램
 
@@ -176,7 +176,7 @@ sequenceDiagram
     participant CartRepository
     participant DB
 
-    Client->>OrderController: POST /orders<br/>{userId, orderType, couponId?}
+    Client->>OrderController: POST /orders{userId, orderType, couponId?}
     OrderController->>OrderFacade: createOrder(userId, orderType, couponId)
     
     alt 장바구니 주문
@@ -184,8 +184,8 @@ sequenceDiagram
         CartService->>CartRepository: findByUserId(userId)
         CartRepository->>DB: SELECT * FROM cart_items WHERE user_id = ?
         DB-->>CartRepository: Cart Items
-        CartRepository-->>CartService: List<CartItem>
-        CartService-->>OrderFacade: List<CartItem>
+        CartRepository-->>CartService: List
+        CartService-->>OrderFacade: List
     end
     
     OrderFacade->>OrderFacade: 총 금액 계산 (totalAmount)
@@ -197,7 +197,7 @@ sequenceDiagram
         DB-->>CouponRepository: UserCoupon
         CouponRepository-->>CouponService: UserCoupon
         
-        CouponService->>CouponService: 유효성 검증<br/>(소유자, 사용여부, 유효기간)
+        CouponService->>CouponService: 유효성 검증(소유자, 사용여부, 유효기간)
         alt 쿠폰 유효
             CouponService-->>OrderFacade: discountAmount
             OrderFacade->>OrderFacade: finalAmount = totalAmount - discountAmount
@@ -211,7 +211,7 @@ sequenceDiagram
     OrderFacade->>OrderService: createPendingOrder(userId, items, totalAmount, discountAmount, finalAmount)
     OrderService->>OrderService: 주문 생성 (상태: PENDING)
     OrderService->>OrderRepository: save(order)
-    OrderRepository->>DB: INSERT INTO orders<br/>(total_amount, discount_amount, final_amount, ...)
+    OrderRepository->>DB: INSERT INTO orders(total_amount, discount_amount, final_amount, ...)
     DB-->>OrderRepository: Success
     OrderRepository-->>OrderService: Order
     OrderService-->>OrderFacade: Order
@@ -245,7 +245,7 @@ sequenceDiagram
     OrderRepository-->>OrderService: Success
     OrderService-->>OrderFacade: Success
     
-    OrderFacade-->>OrderController: OrderResponse<br/>(totalAmount, discountAmount, finalAmount)
+    OrderFacade-->>OrderController: OrderResponse(totalAmount, discountAmount, finalAmount)
     OrderController-->>Client: 201 Created (OrderResponse)
 ```
 
@@ -284,7 +284,7 @@ sequenceDiagram
 ## 5. 결제 실행
 
 ### API
-`POST /payments`
+`POST /api/payments`
 
 ### 시퀀스 다이어그램
 
@@ -304,7 +304,7 @@ sequenceDiagram
     participant ExternalService
     participant DB
 
-    Client->>PaymentController: POST /payments<br/>{orderId, userId}
+    Client->>PaymentController: POST /payments{orderId, userId}
     PaymentController->>PaymentFacade: executePayment(orderId, userId)
     
     PaymentFacade->>OrderService: getOrder(orderId)
@@ -362,7 +362,7 @@ sequenceDiagram
         PaymentFacade->>PaymentFacade: 결제 내역 생성
         
         Note over PaymentFacade,ExternalService: 외부 연동 (비동기)
-        PaymentFacade--)ExternalService: 주문 데이터 전송<br/>(로그 출력)
+        PaymentFacade--)ExternalService: 주문 데이터 전송(로그 출력)
         
         PaymentFacade-->>PaymentController: PaymentResponse
         PaymentController-->>Client: 200 OK (PaymentResponse)
@@ -435,11 +435,12 @@ sequenceDiagram
 
 ---
 
+---
 
 ## 6. 쿠폰 발급
 
 ### API
-`POST /coupons/{couponId}/issue`
+`POST /api/coupons/issue`
 
 ### 시퀀스 다이어그램
 
@@ -452,7 +453,7 @@ sequenceDiagram
     participant UserCouponRepository
     participant DB
 
-    Client->>CouponController: POST /coupons/{couponId}/issue<br/>{userId}
+    Client->>CouponController: POST /coupons/{couponId}/issue{userId}
     CouponController->>CouponService: issueCoupon(couponId, userId)
     
     CouponService->>CouponRepository: findById(couponId)
@@ -461,7 +462,7 @@ sequenceDiagram
     CouponRepository-->>CouponService: Coupon
     
     CouponService->>UserCouponRepository: existsByUserIdAndCouponId(userId, couponId)
-    UserCouponRepository->>DB: SELECT COUNT(*) FROM user_coupons<br/>WHERE user_id = ? AND coupon_id = ?
+    UserCouponRepository->>DB: SELECT COUNT(*) FROM user_couponsWHERE user_id = ? AND coupon_id = ?
     DB-->>UserCouponRepository: Count
     UserCouponRepository-->>CouponService: boolean
     
@@ -491,11 +492,11 @@ sequenceDiagram
     
     CouponService->>CouponService: issuedQuantity++
     CouponService->>CouponRepository: save(coupon)
-    CouponRepository->>DB: UPDATE coupons<br/>SET issued_quantity = issued_quantity + 1
+    CouponRepository->>DB: UPDATE couponsSET issued_quantity = issued_quantity + 1
     DB-->>CouponRepository: Success
     
     CouponService->>UserCouponRepository: save(userCoupon)
-    UserCouponRepository->>DB: INSERT INTO user_coupons<br/>(user_id, coupon_id, status, ...)
+    UserCouponRepository->>DB: INSERT INTO user_coupons(user_id, coupon_id, status, ...)
     DB-->>UserCouponRepository: Success
     
     UserCouponRepository-->>CouponService: UserCoupon
@@ -537,7 +538,7 @@ sequenceDiagram
     participant BalanceRepository
     participant DB
 
-    Client->>BalanceController: POST /balances/charge<br/>{userId, amount}
+    Client->>BalanceController: POST /balances/charge{userId, amount}
     BalanceController->>BalanceService: chargeBalance(userId, amount)
     
     BalanceService->>BalanceRepository: findByUserId(userId)
@@ -552,7 +553,7 @@ sequenceDiagram
         DB-->>BalanceRepository: Success
         
         BalanceService->>BalanceRepository: saveTransaction(transaction)
-        BalanceRepository->>DB: INSERT INTO balance_transactions<br/>(user_id, type, amount, ...)
+        BalanceRepository->>DB: INSERT INTO balance_transactions(user_id, type, amount, ...)
         DB-->>BalanceRepository: Success
         
         BalanceRepository-->>BalanceService: Success
@@ -596,7 +597,7 @@ sequenceDiagram
     OrderController->>OrderService: getOrderById(orderId, userId)
     
     OrderService->>OrderRepository: findById(orderId)
-    OrderRepository->>DB: SELECT o.*, oi.*<br/>FROM orders o<br/>LEFT JOIN order_items oi ON o.id = oi.order_id<br/>WHERE o.id = ?
+    OrderRepository->>DB: SELECT o.*, oi.*FROM orders oLEFT JOIN order_items oi ON o.id = oi.order_idWHERE o.id = ?
     DB-->>OrderRepository: Order with Items
     OrderRepository-->>OrderService: Order
     
@@ -659,4 +660,16 @@ sequenceDiagram
 3. **잔액 차감** (결제 시)
     - 동시에 여러 결제 요청
     - 잔액 정합성 보장 필요
+
+
+
+
+
+
+
+
+
+
+
+
 

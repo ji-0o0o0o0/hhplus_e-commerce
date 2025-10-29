@@ -98,6 +98,8 @@ erDiagram
         bigint id PK
         bigint user_id FK
         bigint coupon_id FK
+        varchar coupon_name
+        int discount_rate
         varchar status "AVAILABLE, USED, EXPIRED"
         datetime issued_at
         datetime used_at "nullable"
@@ -293,6 +295,8 @@ erDiagram
 | id | BIGINT | PK, AUTO_INCREMENT | 사용자 쿠폰 ID |
 | user_id | BIGINT | FK, NOT NULL | 사용자 ID |
 | coupon_id | BIGINT | FK, NOT NULL | 쿠폰 ID |
+| name | VARCHAR(100) | NOT NULL | 쿠폰명 |
+| discount_rate | INT | NOT NULL | 할인율 (%) |
 | status | VARCHAR(20) | NOT NULL | 상태 (AVAILABLE, USED, EXPIRED) |
 | issued_at | DATETIME | NOT NULL | 발급 시간 |
 | used_at | DATETIME | NULL | 사용 시간 |
