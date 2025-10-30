@@ -1,0 +1,1289 @@
+openapi: 3.0.1
+info:
+  title: 항해플러스 E-Commerce API
+  description: 항해플러스 이커머스 서비스 API 문서
+  version: 1.0.0
+servers:
+- url: http://localhost:8080
+  description: Generated server url
+tags:
+- name: 상품 API
+  description: 상품 조회 관련 API
+- name: 주문 API
+  description: 주문 관리 API
+- name: 잔액 API
+  description: 잔액 조회 및 충전 API
+- name: 결제 실행 API
+  description: 결제 실행 API
+- name: 장바구니 API
+  description: 장바구니 관리 API
+- name: 쿠폰 API
+  description: 쿠폰 관리 API
+paths:
+  /api/payments:
+    post:
+      tags:
+      - 결제 실행 API
+      summary: 결제 실행
+      description: 생성된 주문을 결제한다.
+      operationId: createPayment
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ExecutePaymentRequest"
+        required: true
+      responses:
+        "404":
+          description: 주문 없음
+          content:
+            application/json:
+              examples:
+                주문 없음:
+                  description: 주문 없음
+                  value:
+                    code: 404
+                    message: 주문을 찾을 수 없습니다.
+                    data: null
+        "400":
+          description: 잔액 부족
+          content:
+            application/json:
+              examples:
+                잔액 부족:
+                  description: 잔액 부족
+                  value:
+                    code: 400
+                    message: 잔액이 부족합니다.
+                    data: null
+        "200":
+          description: 결제 성공
+          content:
+            application/json:
+              examples:
+                성공:
+                  description: 성공
+                  value:
+                    code: 200
+                    message: 요청이 정상적으로 처리되었습니다.
+                    data:
+                      paymentId: 1
+                      orderId: 1
+                      userId: 1
+                      finalAmount: 50000
+                      balanceAfter: 50000
+                      status: COMPLETED
+                      paidAt: 2025-10-30T10:00:00
+  /api/orders:
+    get:
+      tags:
+      - 주문 API
+      summary: 주문 목록 조회
+      description: 사용자의 주문 목록을 조회합니다
+      operationId: getOrders
+      parameters:
+      - name: userId
+        in: query
+        description: 사용자 ID
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1
+      - name: page
+        in: query
+        description: 페이지 번호
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+        example: 0
+      - name: size
+        in: query
+        description: 페이지 크기
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 10
+        example: 10
+      - name: status
+        in: query
+        description: "주문 상태 (PENDING, COMPLETED, CANCELLED)"
+        required: false
+        schema:
+          type: string
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseOrderListResponse"
+    post:
+      tags:
+      - 주문 API
+      summary: 주문 생성
+      description: 장바구니 또는 즉시 구매로 주문을 생성합니다
+      operationId: createOrder
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateOrderRequest"
+        required: true
+      responses:
+        "400":
+          description: 잘못된 요청
+          content:
+            application/json:
+              examples:
+                상품 목록 없음:
+                  description: 상품 목록 없음
+                  value:
+                    code: 400
+                    message: 즉시 구매 시 상품 목록은 필수입니다.
+                    data: null
+                재고 부족:
+                  description: 재고 부족
+                  value:
+                    code: 400
+                    message: 상품의 재고가 부족합니다.
+                    data: null
+        "201":
+          description: 주문 생성 성공
+          content:
+            application/json:
+              examples:
+                성공:
+                  description: 성공
+                  value:
+                    code: 201
+                    message: 주문이 생성되었습니다.
+                    data:
+                      orderId: 1
+                      userId: 1
+                      totalAmount: 2000000
+                      discountAmount: 200000
+                      finalAmount: 1800000
+                      status: PENDING
+                      orderItems:
+                      - orderItemId: 1
+                        productId: 1
+                        productName: Macbook Pro
+                        quantity: 1
+                        unitPrice: 2000000
+                        subtotal: 2000000
+                      createdAt: 2025-10-30T10:00:00
+        "404":
+          description: 쿠폰 없음
+          content:
+            application/json:
+              examples:
+                쿠폰 없음:
+                  description: 쿠폰 없음
+                  value:
+                    code: 404
+                    message: 쿠폰을 찾을 수 없습니다.
+                    data: null
+  /api/coupons/issue:
+    post:
+      tags:
+      - 쿠폰 API
+      summary: 쿠폰 발급
+      description: 사용자에게 쿠폰을 발급한다.
+      operationId: issueCoupon
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/IssueCouponRequest"
+        required: true
+      responses:
+        "201":
+          description: 쿠폰 발급 성공
+          content:
+            application/json:
+              examples:
+                성공:
+                  description: 성공
+                  value:
+                    code: 201
+                    message: 쿠폰이 성공적으로 발급되었습니다
+                    data:
+                      userCouponId: 1
+                      userId: 1
+                      couponId: 1
+                      couponName: 20% 할인 쿠폰
+                      discountRate: 20
+                      status: AVAILABLE
+                      issuedAt: 2025-10-30T10:00:00
+                      expiresAt: 2025-11-30T10:00:00
+        "409":
+          description: 발급 불가
+          content:
+            application/json:
+              examples:
+                이미 발급받음:
+                  description: 이미 발급받음
+                  value:
+                    code: 409
+                    message: 이미 발급받은 쿠폰입니다.
+                    data: null
+                쿠폰 소진:
+                  description: 쿠폰 소진
+                  value:
+                    code: 409
+                    message: 쿠폰이 모두 소진되었습니다.
+                    data: null
+        "404":
+          description: 쿠폰 없음
+          content:
+            application/json:
+              examples:
+                쿠폰 없음:
+                  description: 쿠폰 없음
+                  value:
+                    code: 404
+                    message: 쿠폰을 찾을 수 없습니다.
+                    data: null
+  /api/cart/items:
+    get:
+      tags:
+      - 장바구니 API
+      summary: 장바구니 조회
+      description: 사용자의 장바구니 목록을 조회합니다
+      operationId: getCartItems
+      parameters:
+      - name: userId
+        in: query
+        description: 사용자 ID
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseCartListResponse"
+    post:
+      tags:
+      - 장바구니 API
+      summary: 장바구니 추가
+      description: 상품을 장바구니에 추가합니다
+      operationId: addCartItem
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddCartItemRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseCartItemResponse"
+  /api/balances/charge:
+    post:
+      tags:
+      - 잔액 API
+      summary: 잔액 충전
+      description: '사용자의 포인트를 충전합니다. '
+      operationId: chargeBalance
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChargeBalanceRequest"
+        required: true
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseBalanceResponse"
+  /api/products:
+    get:
+      tags:
+      - 상품 API
+      summary: 상품 목록 조회
+      description: 페이징과 검색을 지원하는 상품 목록 조회 API
+      operationId: getProducts
+      parameters:
+      - name: page
+        in: query
+        description: 페이지 번호 (0부터 시작)
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+        example: 0
+      - name: size
+        in: query
+        description: 페이지 크기
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 10
+        example: 10
+      - name: keyword
+        in: query
+        description: 상품명 검색어
+        required: false
+        schema:
+          type: string
+        example: macbook
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseProductListResponse"
+  /api/products/{productId}:
+    get:
+      tags:
+      - 상품 API
+      summary: 상품 상세 조회
+      description: 상품 ID로 상품 정보를 조회합니다
+      operationId: getProductById
+      parameters:
+      - name: productId
+        in: path
+        description: 상품 ID
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseProductDetailResponse"
+  /api/products/popular:
+    get:
+      tags:
+      - 상품 API
+      summary: 인기 상품 조회
+      description: 최근 3일간 판매량 기준 상위 5개 상품을 조회합니다
+      operationId: getPopularProducts
+      parameters:
+      - name: days
+        in: query
+        description: 집계 기간 (일)
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 3
+        example: 3
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponsePopularProductsResponse"
+  /api/orders/{orderId}:
+    get:
+      tags:
+      - 주문 API
+      summary: 주문 상세 조회
+      description: 특정 주문의 상세 정보를 조회합니다
+      operationId: getOrderById
+      parameters:
+      - name: orderId
+        in: path
+        description: 주문 ID
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseOrderResponse"
+  /api/coupons:
+    get:
+      tags:
+      - 쿠폰 API
+      summary: 쿠폰 조회
+      description: 본인에게 발급된 쿠폰을 확인할 수 있다.
+      operationId: getCoupons
+      parameters:
+      - name: userId
+        in: query
+        description: 사용자 ID
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1
+      - name: status
+        in: query
+        description: 쿠폰 상태
+        required: false
+        schema:
+          type: string
+          enum:
+          - AVAILABLE
+          - USED
+          - EXPIRED
+        example: AVAILABLE
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseCouponListResponse"
+  /api/balances:
+    get:
+      tags:
+      - 잔액 API
+      summary: 잔액 조회
+      description: '사용자 잔액을 조회 합니다. '
+      operationId: getBalance
+      parameters:
+      - name: userId
+        in: query
+        description: 사용자 ID
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseBalanceResponse"
+  /api/balances/transactions:
+    get:
+      tags:
+      - 잔액 API
+      summary: 거래 내역 조회
+      description: '사용자 point 거래 내역을 조회 합니다. '
+      operationId: getTransactionsBalance
+      parameters:
+      - name: userId
+        in: query
+        description: 사용자 ID
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1
+      - name: page
+        in: query
+        description: 페이지 번호 (0부터 시작)
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 0
+        example: 0
+      - name: size
+        in: query
+        description: 페이지 크기
+        required: false
+        schema:
+          type: integer
+          format: int32
+          default: 10
+        example: 10
+      - name: type
+        in: query
+        description: 거래타입
+        required: false
+        schema:
+          type: string
+          default: CHARGE
+        example: CHARGE
+      responses:
+        "200":
+          description: OK
+          content:
+            '*/*':
+              schema:
+                $ref: "#/components/schemas/ApiResponseTransactionListResponse"
+  /api/cart/items/{cartItemId}:
+    delete:
+      tags:
+      - 장바구니 API
+      summary: 장바구니 삭제
+      description: 장바구니에서 상품을 삭제합니다
+      operationId: removeCartItem
+      parameters:
+      - name: cartItemId
+        in: path
+        description: 장바구니 항목 ID
+        required: true
+        schema:
+          type: integer
+          format: int64
+        example: 1
+      responses:
+        "200":
+          description: OK
+components:
+  schemas:
+    ExecutePaymentRequest:
+      required:
+      - orderId
+      - userId
+      type: object
+      properties:
+        userId:
+          type: integer
+          description: 사용자 ID
+          format: int64
+          example: 1
+        orderId:
+          type: integer
+          description: 주문 ID
+          format: int64
+          example: 1
+      description: 결제 실행 요청
+    CreateOrderRequest:
+      required:
+      - orderType
+      - userId
+      type: object
+      properties:
+        userId:
+          type: integer
+          description: 사용자 ID
+          format: int64
+          example: 1
+        orderType:
+          type: string
+          description: "주문 타입 (CART: 장바구니, DIRECT: 즉시구매)"
+          example: CART
+          enum:
+          - CART
+          - DIRECT
+        couponId:
+          type: integer
+          description: 쿠폰 ID (선택)
+          format: int64
+          example: 1
+        items:
+          type: array
+          description: 즉시 구매 시 상품 목록 (orderType=DIRECT 시 필수)
+          items:
+            $ref: "#/components/schemas/OrderItemRequest"
+      description: 주문 생성 요청
+    OrderItemRequest:
+      required:
+      - productId
+      - quantity
+      type: object
+      properties:
+        productId:
+          type: integer
+          description: 상품 ID
+          format: int64
+          example: 1
+        quantity:
+          type: integer
+          description: 수량
+          format: int32
+          example: 2
+      description: 주문 상품 정보
+    IssueCouponRequest:
+      required:
+      - couponId
+      - userId
+      type: object
+      properties:
+        userId:
+          type: integer
+          description: 사용자 ID
+          format: int64
+          example: 1
+        couponId:
+          type: integer
+          description: 쿠폰 ID
+          format: int64
+          example: 1
+      description: 쿠폰 발급 요청
+    AddCartItemRequest:
+      required:
+      - productId
+      - quantity
+      - userId
+      type: object
+      properties:
+        userId:
+          type: integer
+          description: 사용자 ID
+          format: int64
+          example: 1
+        productId:
+          type: integer
+          description: 상품 ID
+          format: int64
+          example: 1
+        quantity:
+          minimum: 1
+          type: integer
+          description: 수량
+          format: int32
+          example: 2
+      description: 장바구니 추가 요청
+    ApiResponseCartItemResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: HTTP 상태 코드
+          format: int32
+          example: 200
+        message:
+          type: string
+          description: 응답 메시지
+          example: 요청이 정상적으로 처리되었습니다.
+        data:
+          $ref: "#/components/schemas/CartItemResponse"
+      description: 공통 API 응답
+    CartItemResponse:
+      type: object
+      properties:
+        cartItemId:
+          type: integer
+          description: 장바구니 항목 ID
+          format: int64
+          example: 1
+        userId:
+          type: integer
+          description: 사용자 ID
+          format: int64
+          example: 1
+        productId:
+          type: integer
+          description: 상품 ID
+          format: int64
+          example: 1
+        productName:
+          type: string
+          description: 상품명
+          example: Macbook Pro
+        quantity:
+          type: integer
+          description: 수량
+          format: int32
+          example: 2
+        price:
+          type: integer
+          description: 상품 가격
+          format: int32
+          example: 2000000
+      description: 장바구니 항목 응답
+    ChargeBalanceRequest:
+      required:
+      - amount
+      - userId
+      type: object
+      properties:
+        userId:
+          type: integer
+          description: 사용자 ID
+          format: int64
+          example: 1
+        amount:
+          minimum: 1
+          type: integer
+          description: 충전 금액
+          format: int32
+          example: 100000
+      description: 잔액 충전 요청
+    ApiResponseBalanceResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: HTTP 상태 코드
+          format: int32
+          example: 200
+        message:
+          type: string
+          description: 응답 메시지
+          example: 요청이 정상적으로 처리되었습니다.
+        data:
+          $ref: "#/components/schemas/BalanceResponse"
+      description: 공통 API 응답
+    BalanceResponse:
+      type: object
+      properties:
+        balanceId:
+          type: integer
+          description: 잔액 ID
+          format: int64
+          example: 1
+        userId:
+          type: integer
+          description: 사용자 ID
+          format: int64
+          example: 1
+        amount:
+          type: integer
+          description: 잔액
+          format: int32
+          example: 100000
+        updatedAt:
+          type: string
+          description: 마지막 업데이트 시간
+          format: date-time
+      description: 잔액 응답
+    ApiResponseProductListResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: HTTP 상태 코드
+          format: int32
+          example: 200
+        message:
+          type: string
+          description: 응답 메시지
+          example: 요청이 정상적으로 처리되었습니다.
+        data:
+          $ref: "#/components/schemas/ProductListResponse"
+      description: 공통 API 응답
+    ProductDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 상품 ID
+          format: int64
+          example: 1
+        name:
+          type: string
+          description: 상품 이름
+          example: Macbook Pro
+        price:
+          type: integer
+          description: 상품 가격
+          format: int32
+          example: 2000000
+        stock:
+          type: integer
+          description: 재고 수량
+          format: int32
+          example: 10
+        category:
+          type: string
+          description: 카테고리
+          example: 전자제품
+      description: 상품 정보
+    ProductListResponse:
+      type: object
+      properties:
+        products:
+          type: array
+          description: 상품 목록
+          items:
+            $ref: "#/components/schemas/ProductDto"
+        totalElements:
+          type: integer
+          description: 전체 상품 수
+          format: int64
+          example: 100
+        totalPages:
+          type: integer
+          description: 전체 페이지 수
+          format: int32
+          example: 10
+        currentPage:
+          type: integer
+          description: 현재 페이지
+          format: int32
+          example: 0
+        size:
+          type: integer
+          description: 페이지 크기
+          format: int32
+          example: 10
+      description: 상품 목록 조회 응답
+    ApiResponseProductDetailResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: HTTP 상태 코드
+          format: int32
+          example: 200
+        message:
+          type: string
+          description: 응답 메시지
+          example: 요청이 정상적으로 처리되었습니다.
+        data:
+          $ref: "#/components/schemas/ProductDetailResponse"
+      description: 공통 API 응답
+    ProductDetailResponse:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 상품 ID
+          format: int64
+          example: 1
+        name:
+          type: string
+          description: 상품 이름
+          example: Macbook Pro
+        description:
+          type: string
+          description: 상품 설명
+          example: 고성능 노트북
+        price:
+          type: integer
+          description: 상품 가격
+          format: int32
+          example: 2000000
+        stock:
+          type: integer
+          description: 재고 수량
+          format: int32
+          example: 10
+        category:
+          type: string
+          description: 카테고리
+          example: 전자제품
+      description: 상품 상세 조회 응답
+    ApiResponsePopularProductsResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: HTTP 상태 코드
+          format: int32
+          example: 200
+        message:
+          type: string
+          description: 응답 메시지
+          example: 요청이 정상적으로 처리되었습니다.
+        data:
+          $ref: "#/components/schemas/PopularProductsResponse"
+      description: 공통 API 응답
+    PopularProductDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 상품 ID
+          format: int64
+          example: 1
+        name:
+          type: string
+          description: 상품 이름
+          example: Macbook Pro
+        price:
+          type: integer
+          description: 상품 가격
+          format: int32
+          example: 2000000
+        category:
+          type: string
+          description: 카테고리
+          example: 전자제품
+        salesCount:
+          type: integer
+          description: 판매 수량
+          format: int32
+          example: 150
+      description: 인기 상품 정보
+    PopularProductsResponse:
+      type: object
+      properties:
+        products:
+          type: array
+          description: 인기 상품 목록 (최대 5개)
+          items:
+            $ref: "#/components/schemas/PopularProductDto"
+      description: 인기 상품 조회 응답
+    ApiResponseOrderListResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: HTTP 상태 코드
+          format: int32
+          example: 200
+        message:
+          type: string
+          description: 응답 메시지
+          example: 요청이 정상적으로 처리되었습니다.
+        data:
+          $ref: "#/components/schemas/OrderListResponse"
+      description: 공통 API 응답
+    OrderListDto:
+      type: object
+      properties:
+        orderId:
+          type: integer
+          description: 주문 ID
+          format: int64
+          example: 1
+        finalAmount:
+          type: integer
+          description: 최종 금액
+          format: int32
+          example: 50000
+        status:
+          type: string
+          description: 주문 상태
+          example: COMPLETED
+          enum:
+          - PENDING
+          - COMPLETED
+          - CANCELLED
+        createdAt:
+          type: string
+          description: 주문 생성 시간
+          format: date-time
+      description: 주문 목록 항목
+    OrderListResponse:
+      type: object
+      properties:
+        orders:
+          type: array
+          description: 주문 목록
+          items:
+            $ref: "#/components/schemas/OrderListDto"
+        totalElements:
+          type: integer
+          description: 전체 주문 수
+          format: int64
+          example: 10
+        totalPages:
+          type: integer
+          description: 전체 페이지 수
+          format: int32
+          example: 1
+        currentPage:
+          type: integer
+          description: 현재 페이지
+          format: int32
+          example: 0
+        size:
+          type: integer
+          description: 페이지 크기
+          format: int32
+          example: 10
+      description: 주문 목록 조회 응답
+    ApiResponseOrderResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: HTTP 상태 코드
+          format: int32
+          example: 200
+        message:
+          type: string
+          description: 응답 메시지
+          example: 요청이 정상적으로 처리되었습니다.
+        data:
+          $ref: "#/components/schemas/OrderResponse"
+      description: 공통 API 응답
+    OrderItemDto:
+      type: object
+      properties:
+        orderItemId:
+          type: integer
+          description: 주문 항목 ID
+          format: int64
+          example: 1
+        productId:
+          type: integer
+          description: 상품 ID
+          format: int64
+          example: 1
+        productName:
+          type: string
+          description: 상품명
+          example: Macbook Pro
+        quantity:
+          type: integer
+          description: 수량
+          format: int32
+          example: 1
+        unitPrice:
+          type: integer
+          description: 단가
+          format: int32
+          example: 2000000
+        subtotal:
+          type: integer
+          description: 소계
+          format: int32
+          example: 2000000
+      description: 주문 상품 정보
+    OrderResponse:
+      type: object
+      properties:
+        orderId:
+          type: integer
+          description: 주문 ID
+          format: int64
+          example: 1
+        userId:
+          type: integer
+          description: 사용자 ID
+          format: int64
+          example: 1
+        totalAmount:
+          type: integer
+          description: 총 금액
+          format: int32
+          example: 55000
+        discountAmount:
+          type: integer
+          description: 할인 금액
+          format: int32
+          example: 5000
+        finalAmount:
+          type: integer
+          description: 최종 금액
+          format: int32
+          example: 50000
+        status:
+          type: string
+          description: "주문 상태 (PENDING, COMPLETED, CANCELLED)"
+          example: PENDING
+          enum:
+          - PENDING
+          - COMPLETED
+          - CANCELLED
+        orderItems:
+          type: array
+          description: 주문 항목 목록
+          items:
+            $ref: "#/components/schemas/OrderItemDto"
+        createdAt:
+          type: string
+          description: 주문 생성 시간
+          format: date-time
+      description: 주문 응답
+    ApiResponseCouponListResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: HTTP 상태 코드
+          format: int32
+          example: 200
+        message:
+          type: string
+          description: 응답 메시지
+          example: 요청이 정상적으로 처리되었습니다.
+        data:
+          $ref: "#/components/schemas/CouponListResponse"
+      description: 공통 API 응답
+    CouponListResponse:
+      type: object
+      properties:
+        coupons:
+          type: array
+          description: 사용자 쿠폰 목록
+          items:
+            $ref: "#/components/schemas/UserCouponDto"
+      description: 쿠폰 목록 조회 응답
+    UserCouponDto:
+      type: object
+      properties:
+        userCouponId:
+          type: integer
+          description: 사용자 쿠폰 ID
+          format: int64
+          example: 1
+        couponId:
+          type: integer
+          description: 쿠폰 ID
+          format: int64
+          example: 1
+        couponName:
+          type: string
+          description: 쿠폰명
+          example: 20% 할인 쿠폰
+        discountRate:
+          type: integer
+          description: 할인율 (%)
+          format: int32
+          example: 20
+        status:
+          type: string
+          description: "쿠폰 상태 (AVAILABLE, USED, EXPIRED)"
+          example: AVAILABLE
+          enum:
+          - AVAILABLE
+          - USED
+          - EXPIRED
+        issuedAt:
+          type: string
+          description: 발급 시간
+          format: date-time
+        usedAt:
+          type: string
+          description: 사용 시간 (사용한 경우만)
+          format: date-time
+        expiresAt:
+          type: string
+          description: 만료 시간
+          format: date-time
+      description: 사용자 쿠폰 정보
+    ApiResponseCartListResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: HTTP 상태 코드
+          format: int32
+          example: 200
+        message:
+          type: string
+          description: 응답 메시지
+          example: 요청이 정상적으로 처리되었습니다.
+        data:
+          $ref: "#/components/schemas/CartListResponse"
+      description: 공통 API 응답
+    CartDto:
+      type: object
+      properties:
+        cartItemId:
+          type: integer
+          description: 장바구니 항목 ID
+          format: int64
+          example: 1
+        productId:
+          type: integer
+          description: 상품 ID
+          format: int64
+          example: 1
+        productName:
+          type: string
+          description: 상품명
+          example: Macbook Pro
+        quantity:
+          type: integer
+          description: 수량
+          format: int32
+          example: 2
+        price:
+          type: integer
+          description: 상품 단가
+          format: int32
+          example: 2000000
+        subtotal:
+          type: integer
+          description: 소계
+          format: int32
+          example: 4000000
+      description: 장바구니 항목 정보
+    CartListResponse:
+      type: object
+      properties:
+        cartItems:
+          type: array
+          description: 장바구니 항목 목록
+          items:
+            $ref: "#/components/schemas/CartDto"
+        totalAmount:
+          type: integer
+          description: 총 금액
+          format: int32
+          example: 5200000
+      description: 장바구니 조회 응답
+    ApiResponseTransactionListResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+          description: HTTP 상태 코드
+          format: int32
+          example: 200
+        message:
+          type: string
+          description: 응답 메시지
+          example: 요청이 정상적으로 처리되었습니다.
+        data:
+          $ref: "#/components/schemas/TransactionListResponse"
+      description: 공통 API 응답
+    TransactionDto:
+      type: object
+      properties:
+        id:
+          type: integer
+          description: 거래 ID
+          format: int64
+          example: 1
+        type:
+          type: string
+          description: "거래 타입 (CHARGE, USE)"
+          example: CHARGE
+        amount:
+          type: integer
+          description: 거래 금액
+          format: int32
+          example: 100000
+        balanceAfter:
+          type: integer
+          description: 거래 후 잔액
+          format: int32
+          example: 150000
+        createdAt:
+          type: string
+          description: 거래 시간
+          format: date-time
+      description: 거래 내역 정보
+    TransactionListResponse:
+      type: object
+      properties:
+        transactions:
+          type: array
+          description: 거래 내역 목록
+          items:
+            $ref: "#/components/schemas/TransactionDto"
+        totalElements:
+          type: integer
+          description: 전체 거래 수
+          format: int64
+          example: 20
+        totalPages:
+          type: integer
+          description: 전체 페이지 수
+          format: int32
+          example: 2
+        currentPage:
+          type: integer
+          description: 현재 페이지
+          format: int32
+          example: 0
+        size:
+          type: integer
+          description: 페이지 크기
+          format: int32
+          example: 10
+      description: 거래 내역 조회 응답
