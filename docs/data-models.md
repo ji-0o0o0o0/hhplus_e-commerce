@@ -105,6 +105,8 @@ erDiagram
         datetime used_at "nullable"
         datetime expires_at
     }
+    OUTBOX {
+    }
 ```
 
 ---
