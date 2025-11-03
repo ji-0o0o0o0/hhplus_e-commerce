@@ -1,4 +1,4 @@
-package com.hhplus.hhplus_ecommerce.payment.dto.response;
+package com.hhplus.hhplus_ecommerce.point.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.AllArgsConstructor;
@@ -8,10 +8,10 @@ import java.util.List;
 
 @Getter
 @AllArgsConstructor
-@Schema(description = "거래 내역 조회 응답")
+@Schema(description = "포인트 거래 내역 목록 응답")
 public class TransactionListResponse {
 
-    @Schema(description = "거래 내역 목록")
+    @Schema(description = "포인트 거래 내역 목록")
     private List<TransactionDto> transactions;
 
     @Schema(description = "전체 거래 수", example = "20")

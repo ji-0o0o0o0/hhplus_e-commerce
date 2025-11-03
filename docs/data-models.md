@@ -6,7 +6,7 @@
 erDiagram
     USER ||--o{ CART_ITEM : has
     USER ||--o{ ORDER : places
-    USER ||--|| BALANCE : has
+    USER ||--|| POINT : has
     USER ||--o{ USER_COUPON : owns
     
     PRODUCT ||--o{ CART_ITEM : contains
@@ -17,7 +17,7 @@ erDiagram
     
     COUPON ||--o{ USER_COUPON : issued_as
     
-    BALANCE ||--o{ BALANCE_TRANSACTION : records
+    POINT ||--o{ POINT_TRANSACTION : records
     
     USER {
         bigint id PK
@@ -26,16 +26,16 @@ erDiagram
         datetime updated_at
     }
     
-    BALANCE {
+    POINT {
         bigint id PK
         bigint user_id FK
         decimal amount
         datetime updated_at
     }
     
-    BALANCE_TRANSACTION {
+    POINT_TRANSACTION {
         bigint id PK
-        bigint balance_id FK
+        bigint point_id FK
         varchar type "CHARGE, USE"
         decimal amount
         decimal balance_after
