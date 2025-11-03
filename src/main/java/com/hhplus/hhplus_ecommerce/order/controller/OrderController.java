@@ -2,7 +2,6 @@ package com.hhplus.hhplus_ecommerce.order.controller;
 
 import com.hhplus.hhplus_ecommerce.common.dto.ApiResponse;
 import com.hhplus.hhplus_ecommerce.order.OrderStatus;
-import com.hhplus.hhplus_ecommerce.order.OrderType;
 import com.hhplus.hhplus_ecommerce.order.dto.request.CreateOrderRequest;
 import com.hhplus.hhplus_ecommerce.order.dto.response.*;
 import org.springframework.http.HttpStatus;
@@ -19,30 +18,8 @@ public class OrderController implements OrderApi {
 
     @Override
     public ResponseEntity<ApiResponse<OrderResponse>> createOrder(CreateOrderRequest request) {
-        // TODO: Service 계층으로 위임
-        // OrderType 검증
-        if (request.getOrderType() == OrderType.CART) {
-            // 장바구니 주문
-            // Mock: 실제로는 CartService에서 장바구니 조회
-            // 여기서는 항상 성공한다고 가정
-
-        } else if (request.getOrderType() == OrderType.DIRECT) {
-            // 즉시 구매 - items 필수
-            if (request.getItems() == null || request.getItems().isEmpty()) {
-                return ResponseEntity
-                        .badRequest()
-                        .body(ApiResponse.error(400, "즉시 구매 시 상품 목록은 필수입니다."));
-            }
-
-            // Mock: 특정 상품 ID는 재고 부족으로 처리
-            boolean outOfStock = request.getItems().stream()
-                    .anyMatch(item -> item.getProductId() == 999L);
-            if (outOfStock) {
-                return ResponseEntity
-                        .badRequest()
-                        .body(ApiResponse.error(400, "상품의 재고가 부족합니다."));
-            }
-        }
+        // TODO: OrderFacade로 위임 예정
+        // 장바구니에서 상품 조회 → 재고 확인 → 쿠폰 적용 → 주문 생성
 
         // Mock: 쿠폰 검증
         if (request.getCouponId() != null && request.getCouponId() == 999L) {
