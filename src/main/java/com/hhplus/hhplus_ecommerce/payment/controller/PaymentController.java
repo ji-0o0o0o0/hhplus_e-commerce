@@ -1,7 +1,6 @@
 package com.hhplus.hhplus_ecommerce.payment.controller;
 
 import com.hhplus.hhplus_ecommerce.common.dto.ApiResponse;
-import com.hhplus.hhplus_ecommerce.payment.PaymentStatus;
 import com.hhplus.hhplus_ecommerce.payment.dto.request.ExecutePaymentRequest;
 import com.hhplus.hhplus_ecommerce.payment.dto.response.PaymentResponse;
 import org.springframework.http.HttpStatus;
@@ -34,12 +33,10 @@ public class PaymentController implements PaymentApi {
         }
 
         PaymentResponse response = new PaymentResponse(
-                1L,
                 request.getOrderId(),
                 request.getUserId(),
                 50000,
                 50000,
-                PaymentStatus.COMPLETED,
                 LocalDateTime.now()
         );
         return ResponseEntity.ok(ApiResponse.success(response));

@@ -30,13 +30,19 @@ public enum ErrorCode {
     COUPON_SOLD_OUT("COUPON_SOLD_OUT", 409, "쿠폰이 모두 소진되었습니다"),
     COUPON_NOT_AVAILABLE("COUPON_NOT_AVAILABLE", 400, "사용할 수 없는 쿠폰입니다"),
 
+    // 사용자
+    USER_NOT_FOUND("USER_NOT_FOUND", 404, "사용자를 찾을 수 없습니다"),
+
     // 장바구니
     CART_ITEM_NOT_FOUND("CART_ITEM_NOT_FOUND", 404, "장바구니 항목을 찾을 수 없습니다"),
     CART_EMPTY("CART_EMPTY", 400, "장바구니가 비어있습니다"),
+    CART_ITEM_ACCESS_DENIED("CART_ITEM_ACCESS_DENIED", 403, "장바구니 항목에 접근할 수 없습니다"),
 
     // 주문
     ORDER_NOT_FOUND("ORDER_NOT_FOUND", 404, "주문을 찾을 수 없습니다"),
     ORDER_CANNOT_CANCEL("ORDER_CANNOT_CANCEL", 400, "취소할 수 없는 주문입니다"),
+    ORDER_CANNOT_PAY("ORDER_CANNOT_PAY", 400, "결제할 수 없는 주문입니다"),
+    ORDER_EMPTY_ITEMS("ORDER_EMPTY_ITEMS", 400, "주문 항목이 비어있습니다"),
 
     // 결제
     PAYMENT_NOT_FOUND("PAYMENT_NOT_FOUND", 404, "결제 정보를 찾을 수 없습니다"),

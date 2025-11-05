@@ -1,5 +1,6 @@
 package com.hhplus.hhplus_ecommerce.order.domain;
 
+import com.hhplus.hhplus_ecommerce.product.domain.Product;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -18,8 +19,19 @@ public class OrderItem {
     private Integer quantity;
     private Integer subtotal;
 
-    // 주문 항목 생성
-    public static OrderItem create( Long orderId, Long productId,
+    // 주문 항목 생성 (Product 객체로부터)
+    public static OrderItem create(Product product, Integer quantity) {
+        return OrderItem.builder()
+                .productId(product.getId())
+                .productName(product.getName())
+                .unitPrice(product.getPrice())
+                .quantity(quantity)
+                .subtotal(product.getPrice() * quantity)
+                .build();
+    }
+
+    // 주문 항목 생성 (개별 필드로부터)
+    public static OrderItem create(Long orderId, Long productId,
                                    String productName, Integer unitPrice, Integer quantity) {
         return OrderItem.builder()
                 .orderId(orderId)

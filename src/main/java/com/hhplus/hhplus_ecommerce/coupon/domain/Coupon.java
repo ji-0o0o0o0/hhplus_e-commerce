@@ -20,6 +20,7 @@ public class Coupon {
     private Integer discountRate;
     private Integer totalQuantity;
     private Integer issuedQuantity;
+    private Integer validityDays;
     private LocalDateTime startDate;
     private LocalDateTime endDate;
     private LocalDateTime createdAt;
@@ -27,12 +28,13 @@ public class Coupon {
 
     // 새 쿠폰 생성
     public static Coupon create( String name, Integer discountRate,
-                                Integer totalQuantity, LocalDateTime startDate, LocalDateTime endDate) {
+                                Integer totalQuantity,Integer validityDays, LocalDateTime startDate, LocalDateTime endDate) {
         return Coupon.builder()
                 .name(name)
                 .discountRate(discountRate)
                 .totalQuantity(totalQuantity)
                 .issuedQuantity(0)  // 초기 발급 수량 0
+                .validityDays(validityDays)
                 .startDate(startDate)
                 .endDate(endDate)
                 .createdAt(LocalDateTime.now())

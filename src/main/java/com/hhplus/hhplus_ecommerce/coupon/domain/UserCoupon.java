@@ -27,7 +27,7 @@ public class UserCoupon {
     private LocalDateTime expiresAt;
 
     // 쿠폰 발급
-    public static UserCoupon issue(Long userId, Coupon coupon, LocalDateTime expiresAt) {
+    public static UserCoupon issue(Long userId, Coupon coupon) {
         return UserCoupon.builder()
                 .userId(userId)
                 .couponId(coupon.getId())
@@ -36,7 +36,7 @@ public class UserCoupon {
                 .status(CouponStatus.AVAILABLE)
                 .issuedAt(LocalDateTime.now())
                 .usedAt(null)
-                .expiresAt(expiresAt)
+                .expiresAt(LocalDateTime.now().plusDays(coupon.getValidityDays()))
                 .build();
     }
 
