@@ -28,6 +28,7 @@ public class InMemoryCouponRepository implements CouponRepository {
                     .discountRate(coupon.getDiscountRate())
                     .totalQuantity(coupon.getTotalQuantity())
                     .issuedQuantity(coupon.getIssuedQuantity())
+                    .validityDays(coupon.getValidityDays())
                     .startDate(coupon.getStartDate())
                     .endDate(coupon.getEndDate())
                     .createdAt(coupon.getCreatedAt())
@@ -36,6 +37,7 @@ public class InMemoryCouponRepository implements CouponRepository {
             store.put(newCoupon.getId(), newCoupon);
             return newCoupon;
         } else {
+            // 기존 쿠폰 업데이트
             store.put(coupon.getId(), coupon);
             return coupon;
         }

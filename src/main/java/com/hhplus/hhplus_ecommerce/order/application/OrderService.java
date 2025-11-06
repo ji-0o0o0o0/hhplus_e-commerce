@@ -4,6 +4,7 @@ import com.hhplus.hhplus_ecommerce.cart.domain.CartItem;
 import com.hhplus.hhplus_ecommerce.cart.repository.CartItemRepository;
 import com.hhplus.hhplus_ecommerce.common.exception.BusinessException;
 import com.hhplus.hhplus_ecommerce.common.exception.ErrorCode;
+import com.hhplus.hhplus_ecommerce.common.lock.LockManager;
 import com.hhplus.hhplus_ecommerce.coupon.domain.UserCoupon;
 import com.hhplus.hhplus_ecommerce.coupon.repository.UserCouponRepository;
 import com.hhplus.hhplus_ecommerce.order.OrderStatus;
@@ -26,6 +27,7 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final CartItemRepository cartItemRepository;
     private final UserCouponRepository userCouponRepository;
+    private final LockManager lockManager;
 
     //주문 생성
     public Order createOrder(Long userId, List<Long> cartItemIds, Long couponId) {
@@ -51,13 +53,14 @@ public class OrderService {
             Product product = productRepository.findById(cartItem.getProductId())
                     .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
 
-            // 재고 확인 및 차감 (주문 시 재고 예약)
-            if (product.getStock() < cartItem.getQuantity()) {
-                throw new BusinessException(ErrorCode.PRODUCT_INSUFFICIENT_STOCK);
-            }
-
-            product.decreaseStock(cartItem.getQuantity());
-            productRepository.save(product);
+            // 재고 확인 및 차감 (주문 시 재고 예약) - 동시성 제어 적용
+            lockManager.executeWithLock("product:" + product.getId(), () -> {
+                if (product.getStock() < cartItem.getQuantity()) {
+                    throw new BusinessException(ErrorCode.PRODUCT_INSUFFICIENT_STOCK);
+                }
+                product.decreaseStock(cartItem.getQuantity());
+                productRepository.save(product);
+            });
 
             OrderItem orderItem = OrderItem.create(product, cartItem.getQuantity());
             orderItems.add(orderItem);
@@ -114,12 +117,14 @@ public class OrderService {
         // 주문 취소
         order.cancel();
 
-        // 재고 복구
+        // 재고 복구 - 동시성 제어 적용
         for (OrderItem item : order.getItems()) {
-            Product product = productRepository.findById(item.getProductId())
-                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
-            product.increaseStock(item.getQuantity());
-            productRepository.save(product);
+            lockManager.executeWithLock("product:" + item.getProductId(), () -> {
+                Product product = productRepository.findById(item.getProductId())
+                        .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+                product.increaseStock(item.getQuantity());
+                productRepository.save(product);
+            });
         }
 
         orderRepository.save(order);

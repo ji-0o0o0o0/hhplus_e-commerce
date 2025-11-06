@@ -2,6 +2,7 @@ package com.hhplus.hhplus_ecommerce.coupon.application;
 
 import com.hhplus.hhplus_ecommerce.common.exception.BusinessException;
 import com.hhplus.hhplus_ecommerce.common.exception.ErrorCode;
+import com.hhplus.hhplus_ecommerce.common.lock.LockManager;
 import com.hhplus.hhplus_ecommerce.coupon.CouponStatus;
 import com.hhplus.hhplus_ecommerce.coupon.domain.Coupon;
 import com.hhplus.hhplus_ecommerce.coupon.domain.UserCoupon;
@@ -18,36 +19,40 @@ import java.util.List;
 public class CouponService {
     private final CouponRepository couponRepository;
     private final UserCouponRepository userCouponRepository;
+    private final LockManager lockManager;
 
     //선착순 코폰 발급
     public UserCoupon issueCoupon(Long userId, Long couponId) {
-        // 1. 쿠폰 조회
-        Coupon coupon = couponRepository.findById(couponId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.COUPON_NOT_FOUND));
+        // LockManager를 통한 동시성 제어
+        return lockManager.executeWithLock("coupon:" + couponId, () -> {
+            // 1. 쿠폰 조회
+            Coupon coupon = couponRepository.findById(couponId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.COUPON_NOT_FOUND));
 
-        // 2. 중복 발급 확인
-        userCouponRepository.findByUserIdAndCouponId(userId, couponId)
-                .ifPresent(uc -> {
-                    throw new BusinessException(ErrorCode.COUPON_ALREADY_ISSUED);
-                });
+            // 2. 중복 발급 확인
+            userCouponRepository.findByUserIdAndCouponId(userId, couponId)
+                    .ifPresent(uc -> {
+                        throw new BusinessException(ErrorCode.COUPON_ALREADY_ISSUED);
+                    });
 
-        // 3. 발급 가능 여부 확인 (수량)
-        if (!coupon.canIssue()) {
-            throw new BusinessException(ErrorCode.COUPON_SOLD_OUT);
-        }
+            // 3. 발급 가능 여부 확인 (수량)
+            if (!coupon.canIssue()) {
+                throw new BusinessException(ErrorCode.COUPON_SOLD_OUT);
+            }
 
-        // 4. 유효기간 확인
-        if (!coupon.isValid()) {
-            throw new BusinessException(ErrorCode.COUPON_NOT_AVAILABLE);
-        }
+            // 4. 유효기간 확인
+            if (!coupon.isValid()) {
+                throw new BusinessException(ErrorCode.COUPON_NOT_AVAILABLE);
+            }
 
-        // 5. 쿠폰 발급 수량 증가
-        coupon.increaseIssuedQuantity();
-        couponRepository.save(coupon);
+            // 5. 쿠폰 발급 수량 증가
+            coupon.increaseIssuedQuantity();
+            couponRepository.save(coupon);
 
-        // 6. 사용자 쿠폰 생성
-        UserCoupon userCoupon = UserCoupon.issue(userId, coupon);
-        return userCouponRepository.save(userCoupon);
+            // 6. 사용자 쿠폰 생성
+            UserCoupon userCoupon = UserCoupon.issue(userId, coupon);
+            return userCouponRepository.save(userCoupon);
+        });
     }
 
     //사용자의 쿠폰 목록 조회
