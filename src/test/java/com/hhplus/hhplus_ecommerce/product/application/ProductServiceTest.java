@@ -25,6 +25,9 @@ class ProductServiceTest {
     @Mock
     private ProductRepository productRepository;
 
+    @Mock
+    private com.hhplus.hhplus_ecommerce.common.lock.LockManager lockManager;
+
     @InjectMocks
     private ProductService productService;
 
@@ -42,6 +45,13 @@ class ProductServiceTest {
                 .stock(10)
                 .category("전자제품")
                 .build();
+
+        // LockManager Mock 공통 설정 (lenient)
+        lenient().doAnswer(invocation -> {
+            Runnable action = invocation.getArgument(1);
+            action.run();
+            return null;
+        }).when(lockManager).executeWithLock(anyString(), any(Runnable.class));
     }
 
     @Test
