@@ -6,7 +6,7 @@
 erDiagram
     USER ||--o{ CART_ITEM : has
     USER ||--o{ ORDER : places
-    USER ||--|| BALANCE : has
+    USER ||--|| POINT : has
     USER ||--o{ USER_COUPON : owns
     
     PRODUCT ||--o{ CART_ITEM : contains
@@ -17,7 +17,7 @@ erDiagram
     
     COUPON ||--o{ USER_COUPON : issued_as
     
-    BALANCE ||--o{ BALANCE_TRANSACTION : records
+    POINT ||--o{ POINT_TRANSACTION : records
     
     USER {
         bigint id PK
@@ -26,16 +26,16 @@ erDiagram
         datetime updated_at
     }
     
-    BALANCE {
+    POINT {
         bigint id PK
         bigint user_id FK
         decimal amount
         datetime updated_at
     }
     
-    BALANCE_TRANSACTION {
+    POINT_TRANSACTION {
         bigint id PK
-        bigint balance_id FK
+        bigint point_id FK
         varchar type "CHARGE, USE"
         decimal amount
         decimal balance_after
@@ -46,7 +46,7 @@ erDiagram
         bigint id PK
         varchar name
         text description
-        decimal price
+        int price
         int stock
         varchar category
         datetime created_at
@@ -65,22 +65,22 @@ erDiagram
         bigint id PK
         bigint user_id FK
         bigint coupon_id FK "nullable"
-        decimal total_amount
-        decimal discount_amount
-        decimal final_amount
+        int total_amount
+        int discount_amount
+        int final_amount
         varchar status "PENDING, COMPLETED, CANCELLED"
         datetime created_at
         datetime updated_at
     }
-    
+
     ORDER_ITEM {
         bigint id PK
         bigint order_id FK
         bigint product_id FK
         varchar product_name
-        decimal unit_price
+        int unit_price
         int quantity
-        decimal subtotal
+        int subtotal
     }
     
     COUPON {
@@ -92,6 +92,7 @@ erDiagram
         datetime start_date
         datetime end_date
         datetime created_at
+        datetime updated_at
     }
     
     USER_COUPON {
@@ -173,7 +174,7 @@ erDiagram
 | id | BIGINT | PK, AUTO_INCREMENT | 상품 ID |
 | name | VARCHAR(200) | NOT NULL | 상품명 |
 | description | TEXT | NULL | 상품 설명 |
-| price | DECIMAL(15,2) | NOT NULL | 가격 |
+| price | INT | NOT NULL | 가격 (원 단위) |
 | stock | INT | NOT NULL, DEFAULT 0 | 재고 수량 |
 | category | VARCHAR(100) | NULL | 카테고리 |
 | created_at | DATETIME | NOT NULL | 생성 시간 |
@@ -219,9 +220,9 @@ erDiagram
 | id | BIGINT | PK, AUTO_INCREMENT | 주문 ID |
 | user_id | BIGINT | FK, NOT NULL | 사용자 ID |
 | coupon_id | BIGINT | FK, NULL | 사용한 쿠폰 ID |
-| total_amount | DECIMAL(15,2) | NOT NULL | 총 금액 |
-| discount_amount | DECIMAL(15,2) | NOT NULL, DEFAULT 0 | 할인 금액 |
-| final_amount | DECIMAL(15,2) | NOT NULL | 최종 결제 금액 |
+| total_amount | INT | NOT NULL | 총 금액 (원 단위) |
+| discount_amount | INT | NOT NULL, DEFAULT 0 | 할인 금액 (원 단위) |
+| final_amount | INT | NOT NULL | 최종 결제 금액 (원 단위) |
 | status | VARCHAR(20) | NOT NULL | 주문 상태 (PENDING, COMPLETED, CANCELLED) |
 | created_at | DATETIME | NOT NULL | 주문 생성 시간 |
 | updated_at | DATETIME | NOT NULL | 수정 시간 |
@@ -246,9 +247,9 @@ erDiagram
 | order_id | BIGINT | FK, NOT NULL | 주문 ID |
 | product_id | BIGINT | FK, NOT NULL | 상품 ID |
 | product_name | VARCHAR(200) | NOT NULL | 상품명 (스냅샷) |
-| unit_price | DECIMAL(15,2) | NOT NULL | 단가 (스냅샷) |
+| unit_price | INT | NOT NULL | 단가 (원 단위, 스냅샷) |
 | quantity | INT | NOT NULL | 수량 |
-| subtotal | DECIMAL(15,2) | NOT NULL | 소계 |
+| subtotal | INT | NOT NULL | 소계 (원 단위) |
 
 **제약조건:**
 - subtotal = unit_price * quantity
@@ -278,6 +279,7 @@ erDiagram
 | start_date | DATETIME | NOT NULL | 유효 시작일 |
 | end_date | DATETIME | NOT NULL | 유효 종료일 |
 | created_at | DATETIME | NOT NULL | 생성 시간 |
+| updated_at | DATETIME | NOT NULL | 수정 시간 |
 
 **제약조건:**
 - discount_rate BETWEEN 1 AND 100

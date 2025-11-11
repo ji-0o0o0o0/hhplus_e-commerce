@@ -533,10 +533,10 @@ GET /api/products?page=0&size=10&keyword=macbook
 
 ---
 
-## 4. 결제 (Payment)
+## 4. 포인트 & 결제 (Point & Payment)
 
-### 4.1 잔액 조회
-`GET /api/balances`
+### 4.1 포인트 조회
+`GET /api/points`
 
 #### Query Parameters
 | 파라미터 | 타입 | 필수 | 설명 |
@@ -552,7 +552,7 @@ GET /api/products?page=0&size=10&keyword=macbook
   "code": 200,
   "message": "요청이 정상적으로 처리되었습니다.",
   "data": {
-    "balanceId": 1,
+    "id": 1,
     "userId": 1,
     "amount": 100000,
     "updatedAt": "2025-10-29T10:00:00"
@@ -566,12 +566,12 @@ GET /api/products?page=0&size=10&keyword=macbook
 |----------|------|-----------|
 | 401 | 인증 실패 | `{"code": 401, "message": "로그인이 필요합니다."}` |
 | 403 | 권한 없음 | `{"code": 403, "message": "권한이 없습니다."}` |
-| 404 | 잔액 정보 없음 | `{"code": 404, "message": "잔액 정보를 찾을 수 없습니다."}` |
+| 404 | 포인트 정보 없음 | `{"code": 404, "message": "포인트 정보를 찾을 수 없습니다."}` |
 
 ---
 
-### 4.2 잔액 충전
-`POST /api/balances/charge`
+### 4.2 포인트 충전
+`POST /api/points/charge`
 
 #### Request Body
 | 필드 | 타입 | 필수 | 설명 |
@@ -593,9 +593,9 @@ GET /api/products?page=0&size=10&keyword=macbook
 ```json
 {
   "code": 200,
-  "message": "잔액이 충전되었습니다.",
+  "message": "포인트가 충전되었습니다.",
   "data": {
-    "balanceId": 1,
+    "id": 1,
     "userId": 1,
     "amount": 200000,
     "updatedAt": "2025-10-29T10:00:00"
@@ -608,7 +608,7 @@ GET /api/products?page=0&size=10&keyword=macbook
 | 상태 코드 | 설명 | 응답 예시 |
 |----------|------|-----------|
 | 400 | 잘못된 금액 | `{"code": 400, "message": "충전 금액은 0보다 커야 합니다."}` |
-| 403 | 권한 없음 | `{"code": 403, "message": "다른 사용자의 잔액입니다."}` |
+| 403 | 권한 없음 | `{"code": 403, "message": "다른 사용자의 포인트입니다."}` |
 | 404 | 사용자 없음 | `{"code": 404, "message": "사용자를 찾을 수 없습니다."}` |
 
 ---
@@ -653,15 +653,15 @@ GET /api/products?page=0&size=10&keyword=macbook
 
 | 상태 코드 | 설명 | 응답 예시 |
 |----------|------|-----------|
-| 400 | 잔액 부족 | `{"code": 400, "message": "잔액이 부족합니다."}` |
+| 400 | 포인트 부족 | `{"code": 400, "message": "포인트가 부족합니다."}` |
 | 400 | 잘못된 주문 상태 | `{"code": 400, "message": "결제할 수 없는 주문 상태입니다."}` |
 | 404 | 주문 없음 | `{"code": 404, "message": "주문을 찾을 수 없습니다."}` |
 | 404 | 사용자 없음 | `{"code": 404, "message": "사용자를 찾을 수 없습니다."}` |
 
 ---
 
-### 4.4 잔액 거래 내역 조회
-`GET /api/balances/transactions`
+### 4.4 포인트 거래 내역 조회
+`GET /api/points/transactions`
 
 #### Query Parameters
 | 파라미터 | 타입 | 필수 | 기본값 | 설명 |
