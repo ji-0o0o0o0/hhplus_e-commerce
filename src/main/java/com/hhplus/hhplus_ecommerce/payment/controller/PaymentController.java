@@ -19,22 +19,22 @@ public class PaymentController implements PaymentApi {
     public ResponseEntity<ApiResponse<PaymentResponse>> executePayment(ExecutePaymentRequest request) {
 
         // Mock: 특정 주문 ID는 없는 것으로 처리
-        if (request.getOrderId() == 999L) {
+        if (request.orderId() == 999L) {
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
                     .body(ApiResponse.error(404, "주문을 찾을 수 없습니다."));
         }
 
         // Mock: 특정 사용자 ID는 잔액 부족으로 처리
-        if (request.getUserId() == 999L) {
+        if (request.userId() == 999L) {
             return ResponseEntity
                     .badRequest()
                     .body(ApiResponse.error(400, "잔액이 부족합니다."));
         }
 
         PaymentResponse response = new PaymentResponse(
-                request.getOrderId(),
-                request.getUserId(),
+                request.orderId(),
+                request.userId(),
                 50000,
                 50000,
                 LocalDateTime.now()

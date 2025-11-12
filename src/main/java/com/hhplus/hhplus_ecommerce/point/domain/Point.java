@@ -59,4 +59,7 @@ public class Point {
         this.amount -= useAmount;
         this.updatedAt = LocalDateTime.now();
     }
+    public boolean hasSufficientBalance(Integer amount) {
+        return this.amount >= amount;
+    }
 }

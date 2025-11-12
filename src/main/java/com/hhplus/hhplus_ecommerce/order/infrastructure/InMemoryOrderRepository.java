@@ -51,14 +51,14 @@ public class InMemoryOrderRepository implements OrderRepository {
     public List<Order> findByUserId(Long userId) {
         return store.values().stream()
                 .filter(order -> userId.equals(order.getUserId()))
-                .collect(Collectors.toList());
+               .toList();
     }
 
     @Override
     public List<Order> findByStatus(OrderStatus status) {
         return store.values().stream()
                 .filter(order -> status.equals(order.getStatus()))
-                .collect(Collectors.toList());
+               .toList();
     }
 
     @Override

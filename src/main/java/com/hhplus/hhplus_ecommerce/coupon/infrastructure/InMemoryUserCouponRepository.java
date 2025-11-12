@@ -49,7 +49,7 @@ public class InMemoryUserCouponRepository implements UserCouponRepository {
     public List<UserCoupon> findByUserId(Long userId) {
         return store.values().stream()
                 .filter(uc -> userId.equals(uc.getUserId()))
-                .collect(Collectors.toList());
+               .toList();
     }
 
     @Override
@@ -63,7 +63,7 @@ public class InMemoryUserCouponRepository implements UserCouponRepository {
     public List<UserCoupon> findByUserIdAndStatus(Long userId, CouponStatus status) {
         return store.values().stream()
                 .filter(uc -> userId.equals(uc.getUserId()) && status.equals(uc.getStatus()))
-                .collect(Collectors.toList());
+               .toList();
     }
 
     public void clear() {

@@ -63,6 +63,12 @@ public class UserCoupon {
         this.status = CouponStatus.EXPIRED;
     }
 
+    public boolean shouldExpire() {
+        return this.status == CouponStatus.AVAILABLE &&
+                this.expiresAt != null &&
+                LocalDateTime.now().isAfter(this.expiresAt);
+    }
+
     // 할인 금액 계산
     public int calculateDiscount(Integer orderAmount) {
         return orderAmount * discountRate / 100;

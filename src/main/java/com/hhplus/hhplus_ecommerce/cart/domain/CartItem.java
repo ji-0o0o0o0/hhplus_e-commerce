@@ -19,7 +19,6 @@ public class CartItem {
     private Integer quantity;
     private LocalDateTime createdAt;
 
-    // 장바구니 항목 생성
     public static CartItem create(Long userId, Long productId, Integer quantity) {
         return CartItem.builder()
                 .userId(userId)
@@ -37,8 +36,16 @@ public class CartItem {
         this.quantity = quantity;
     }
 
-    // 비즈니스 로직: 수량 증가
     public void increaseQuantity(Integer amount) {
         this.quantity += amount;
+    }
+
+    public void decreaseQuantity(Integer amount) {
+        this.quantity -= amount;
+    }
+
+
+    public boolean isQuantityZeroOrLess() {
+        return this.quantity <= 0;
     }
 }

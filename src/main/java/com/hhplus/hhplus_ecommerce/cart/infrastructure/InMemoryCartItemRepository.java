@@ -44,7 +44,7 @@ public class InMemoryCartItemRepository implements CartItemRepository {
     public List<CartItem> findByUserId(Long userId) {
         return store.values().stream()
                 .filter(item -> userId.equals(item.getUserId()))
-                .collect(Collectors.toList());
+               .toList();
     }
 
     @Override
@@ -64,7 +64,7 @@ public class InMemoryCartItemRepository implements CartItemRepository {
         List<Long> toDelete = store.values().stream()
                 .filter(item -> userId.equals(item.getUserId()))
                 .map(CartItem::getId)
-                .collect(Collectors.toList());
+               .toList();
 
         toDelete.forEach(store::remove);
     }

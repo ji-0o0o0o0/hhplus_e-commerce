@@ -56,7 +56,7 @@ public class InMemoryProductRepository implements ProductRepository {
     public List<Product> findByCategory(String category) {
         return store.values().stream()
                 .filter(p -> category.equals(p.getCategory()))
-                .collect(Collectors.toList());
+               .toList();
     }
 
     @Override
@@ -66,7 +66,7 @@ public class InMemoryProductRepository implements ProductRepository {
                 .limit(limit)
                 .map(entry -> store.get(entry.getKey()))
                 .filter(Objects::nonNull)
-                .collect(Collectors.toList());
+               .toList();
     }
 
     // 판매 기록 추가 (테스트/초기화 용도)

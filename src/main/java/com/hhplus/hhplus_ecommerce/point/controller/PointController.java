@@ -32,8 +32,8 @@ public class PointController implements PointApi {
     public ResponseEntity<ApiResponse<PointResponse>> chargePoint(ChargePointRequest request) {
         PointResponse response = new PointResponse(
                 1L,
-                request.getUserId(),
-                request.getAmount(),
+                request.userId(),
+                request.amount(),
                 LocalDateTime.now()
         );
         return ResponseEntity.ok(ApiResponse.success(response));

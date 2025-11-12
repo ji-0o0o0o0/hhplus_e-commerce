@@ -26,21 +26,17 @@ public class PaymentService {
     private final UserCouponRepository userCouponRepository;
     private final ProductRepository productRepository;
 
-    //결제 실행
     public void executePayment(Long userId, Long orderId) {
-        // 1. 주문 조회 및 검증
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
 
         validatePayment(order, userId);
 
-        // 2. 포인트 차감
         Point point = pointRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POINT_NOT_FOUND));
         point.use(order.getFinalAmount());
         Point savedPoint = pointRepository.save(point);
 
-        // 3. 포인트 거래 내역 저장
         PointTransaction transaction = PointTransaction.create(
                 userId,
                 order.getFinalAmount(),
@@ -49,7 +45,6 @@ public class PaymentService {
         );
         pointTransactionRepository.save(transaction);
 
-        // 4. 쿠폰 사용 처리
         if (order.getCouponId() != null) {
             UserCoupon userCoupon = userCouponRepository.findByUserIdAndCouponId(userId, order.getCouponId())
                     .orElseThrow(() -> new BusinessException(ErrorCode.COUPON_NOT_FOUND));
@@ -57,7 +52,6 @@ public class PaymentService {
             userCouponRepository.save(userCoupon);
         }
 
-        // 5. 주문 완료
         order.complete();
         orderRepository.save(order);
     }
@@ -73,7 +67,7 @@ public class PaymentService {
         // 포인트 검증
         Point point = pointRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POINT_NOT_FOUND));
-        if (point.getAmount() < order.getFinalAmount()) {
+        if (!point.hasSufficientBalance(order.getFinalAmount())) {
             throw new BusinessException(ErrorCode.POINT_INSUFFICIENT_BALANCE);
         }
 
@@ -81,7 +75,7 @@ public class PaymentService {
         for (OrderItem item : order.getItems()) {
             Product product = productRepository.findById(item.getProductId())
                     .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
-            if (product.getStock() < item.getQuantity()) {
+            if (!product.hasSufficientStock(item.getQuantity())) {
                 throw new BusinessException(ErrorCode.PRODUCT_INSUFFICIENT_STOCK);
             }
         }

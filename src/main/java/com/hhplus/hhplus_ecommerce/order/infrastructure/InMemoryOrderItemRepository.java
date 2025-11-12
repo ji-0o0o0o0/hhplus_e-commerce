@@ -41,7 +41,7 @@ public class InMemoryOrderItemRepository implements OrderItemRepository {
     public List<OrderItem> findByOrderId(Long orderId) {
         return store.values().stream()
                 .filter(item -> orderId.equals(item.getOrderId()))
-                .collect(Collectors.toList());
+               .toList();
     }
 
     @Override

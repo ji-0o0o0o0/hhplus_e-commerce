@@ -21,29 +21,30 @@ public class OrderItem {
 
     // 주문 항목 생성 (Product 객체로부터)
     public static OrderItem create(Product product, Integer quantity) {
-        return OrderItem.builder()
+        OrderItem item = OrderItem.builder()
                 .productId(product.getId())
                 .productName(product.getName())
                 .unitPrice(product.getPrice())
                 .quantity(quantity)
-                .subtotal(product.getPrice() * quantity)
                 .build();
+        item.subtotal = item.calculateSubtotal();
+        return item;
     }
 
     // 주문 항목 생성 (개별 필드로부터)
     public static OrderItem create(Long orderId, Long productId,
                                    String productName, Integer unitPrice, Integer quantity) {
-        return OrderItem.builder()
+        OrderItem item = OrderItem.builder()
                 .orderId(orderId)
                 .productId(productId)
                 .productName(productName)
                 .unitPrice(unitPrice)
                 .quantity(quantity)
-                .subtotal(unitPrice * quantity)
                 .build();
+        item.subtotal = item.calculateSubtotal();
+        return item;
     }
 
-    // 소계 계산
     public Integer calculateSubtotal() {
         return this.unitPrice * this.quantity;
     }

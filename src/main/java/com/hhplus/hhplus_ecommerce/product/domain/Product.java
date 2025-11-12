@@ -37,7 +37,6 @@ public class Product {
                 .build();
     }
 
-    //비즈니스 로직
     public void decreaseStock(Integer quantity) {
         if(this.stock < quantity ) {
             throw new BusinessException(ErrorCode.PRODUCT_INSUFFICIENT_STOCK);
@@ -48,6 +47,9 @@ public class Product {
     public void increaseStock(Integer quantity) {
         this.stock += quantity;
         this.updatedAt = LocalDateTime.now();
+    }
+    public boolean hasSufficientStock(Integer quantity) {
+        return this.stock >= quantity;
     }
 
     private static void validateCreate(String name, Integer price, Integer stock) {

@@ -44,7 +44,7 @@ public class InMemoryPointTransactionRepository implements PointTransactionRepos
     public List<PointTransaction> findByUserId(Long userId) {
         return userIdIndex.getOrDefault(userId, new ArrayList<>()).stream()
                 .sorted(Comparator.comparing(PointTransaction::getCreatedAt).reversed())
-                .collect(Collectors.toList());
+               .toList();
     }
 
     @Override
@@ -53,7 +53,7 @@ public class InMemoryPointTransactionRepository implements PointTransactionRepos
                 .sorted(Comparator.comparing(PointTransaction::getCreatedAt).reversed())
                 .skip(offset)
                 .limit(limit)
-                .collect(Collectors.toList());
+               .toList();
     }
 
     public void clear() {

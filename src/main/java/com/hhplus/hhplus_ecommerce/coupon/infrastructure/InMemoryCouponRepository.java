@@ -58,7 +58,7 @@ public class InMemoryCouponRepository implements CouponRepository {
         LocalDateTime now = LocalDateTime.now();
         return store.values().stream()
                 .filter(coupon -> coupon.canIssue() && coupon.isValid())
-                .collect(Collectors.toList());
+               .toList();
     }
 
     public void clear() {
