@@ -95,6 +95,7 @@ CREATE TABLE coupons (
     discount_rate INT NOT NULL COMMENT '할인율 (%)',
     total_quantity INT NOT NULL COMMENT '총 발급 가능 수량',
     issued_quantity INT NOT NULL DEFAULT 0 COMMENT '현재 발급된 수량',
+    validity_days INT NOT NULL DEFAULT 10 COMMENT '쿠폰 유효일',
     start_date DATETIME NOT NULL COMMENT '유효 시작일',
     end_date DATETIME NOT NULL COMMENT '유효 종료일',
     version BIGINT NOT NULL DEFAULT 0 COMMENT '낙관적 락 버전',

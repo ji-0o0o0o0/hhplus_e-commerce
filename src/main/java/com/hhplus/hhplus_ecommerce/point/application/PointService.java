@@ -33,7 +33,7 @@ public class PointService {
         int maxRetries = 100;  // 재시도 횟수 5->100
         int attempt = 0;
 
-        while (true) {
+        while (attempt < maxRetries) {
             try {
                 return pointTransactionService.executeChargeWithTransaction(userId, amount);
             } catch (ObjectOptimisticLockingFailureException | OptimisticLockException e) {
@@ -51,6 +51,7 @@ public class PointService {
             }
         }
 
+        throw new BusinessException(ErrorCode.CONCURRENCY_CONFLICT);
     }
     public Point usePoint(Long userId, Long amount) {
         Point point = getPoint(userId);

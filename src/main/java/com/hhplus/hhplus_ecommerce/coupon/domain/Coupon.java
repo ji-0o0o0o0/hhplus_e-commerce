@@ -35,7 +35,7 @@ public class Coupon extends BaseTimeEntity {
     @Column(nullable = false)
     private Integer issuedQuantity;
 
-    @Transient
+    @Column(nullable = false)
     private Integer validityDays;
 
     @Column(nullable = false)
