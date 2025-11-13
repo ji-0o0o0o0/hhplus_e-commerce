@@ -3,8 +3,6 @@ package com.hhplus.hhplus_ecommerce.concurrency;
 import com.hhplus.hhplus_ecommerce.common.exception.BusinessException;
 import com.hhplus.hhplus_ecommerce.coupon.application.CouponService;
 import com.hhplus.hhplus_ecommerce.coupon.domain.Coupon;
-import com.hhplus.hhplus_ecommerce.coupon.infrastructure.InMemoryCouponRepository;
-import com.hhplus.hhplus_ecommerce.coupon.infrastructure.InMemoryUserCouponRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

@@ -38,7 +38,7 @@ public class PaymentService {
         Point savedPoint = pointRepository.save(point);
 
         PointTransaction transaction = PointTransaction.create(
-                userId,
+                point.getId(),
                 order.getFinalAmount(),
                 TransactionType.USE,
                 savedPoint.getAmount()

@@ -1,14 +1,11 @@
 package com.hhplus.hhplus_ecommerce.point.repository;
 
 import com.hhplus.hhplus_ecommerce.point.domain.Point;
-import com.hhplus.hhplus_ecommerce.point.domain.PointTransaction;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-import java.util.List;
 import java.util.Optional;
 
-public interface PointRepository {
+public interface PointRepository extends JpaRepository<Point, Long> {
 
-    Point save(Point point);
-    Optional<Point> findById(Long id);
     Optional<Point> findByUserId(Long userId);
 }

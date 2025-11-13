@@ -1,14 +1,11 @@
 package com.hhplus.hhplus_ecommerce.coupon.repository;
 
 import com.hhplus.hhplus_ecommerce.coupon.domain.Coupon;
+import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.List;
-import java.util.Optional;
 
-public interface CouponRepository {
+public interface CouponRepository extends JpaRepository<Coupon,Long> {
 
-    Coupon save(Coupon coupon);
-    Optional<Coupon> findById(Long id);
-    List<Coupon> findAll();
     List<Coupon> findAvailableCoupons();
 }
