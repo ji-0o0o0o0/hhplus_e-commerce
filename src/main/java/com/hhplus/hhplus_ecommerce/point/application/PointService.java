@@ -7,8 +7,11 @@ import com.hhplus.hhplus_ecommerce.point.domain.Point;
 import com.hhplus.hhplus_ecommerce.point.domain.PointTransaction;
 import com.hhplus.hhplus_ecommerce.point.repository.PointRepository;
 import com.hhplus.hhplus_ecommerce.point.repository.PointTransactionRepository;
+import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -17,7 +20,7 @@ import java.util.List;
 public class PointService {
     private final PointRepository pointRepository;
     private final PointTransactionRepository pointTransactionRepository;
-    //조회
+    private final PointTransactionService pointTransactionService;
     public Point getPoint(Long userId) {
         return pointRepository.findByUserId(userId)
                 .orElseGet(() -> {
@@ -26,37 +29,44 @@ public class PointService {
                     return pointRepository.save(newPoint);
                 });
     }
-    //충전
-    public Point changePoint(Long userId, Integer amount) {
-        //1. 조회
-        Point point = getPoint(userId);
-        //2. 포인트 충전
-        point.charge(amount);
-        //3. 포인트 충전 저장
-        Point savedPoint = pointRepository.save(point);
-        //4. 거래 내역 저장
-        PointTransaction transaction = PointTransaction.create(userId,amount, TransactionType.CHARGE,savedPoint.getAmount());
-        pointTransactionRepository.save(transaction);
+    public Point changePoint(Long userId, Long amount) {
+        int maxRetries = 100;  // 재시도 횟수 5->100
+        int attempt = 0;
 
-        return savedPoint;
+        while (attempt < maxRetries) {
+            try {
+                return pointTransactionService.executeChargeWithTransaction(userId, amount);
+            } catch (ObjectOptimisticLockingFailureException | OptimisticLockException e) {
+                attempt++;
+                if (attempt >= maxRetries) {
+                    throw new BusinessException(ErrorCode.CONCURRENCY_CONFLICT);
+                }
+                // 재시도 전 랜덤 대기 (1~10ms)
+                try {
+                    Thread.sleep((long) (Math.random() * 10 + 1));
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                    throw new BusinessException(ErrorCode.CONCURRENCY_CONFLICT);
+                }
+            }
+        }
+
+        throw new BusinessException(ErrorCode.CONCURRENCY_CONFLICT);
     }
-    //사용
-    public Point usePoint(Long userId, Integer amount) {
-        //1. 포인트 조회
+    public Point usePoint(Long userId, Long amount) {
         Point point = getPoint(userId);
-        //2. 포인트 사용
         point.use(amount);
-        //3. 포인트 사용 저장
         Point savedPoint = pointRepository.save(point);
-        //4. 포인트 사용 내역 저장
-        PointTransaction transaction = PointTransaction.create(userId,amount, TransactionType.USE,savedPoint.getAmount());
+        PointTransaction transaction = PointTransaction.create(savedPoint.getId(),amount, TransactionType.USE,savedPoint.getAmount());
         pointTransactionRepository.save(transaction);
 
         return  savedPoint;
     }
 
-    //거래내용 조회
     public List<PointTransaction> getPointTransactions(Long userId) {
-        return pointTransactionRepository.findByUserId(userId);
+        Point point = pointRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.POINT_NOT_FOUND));
+
+        return pointTransactionRepository.findByPointId(point.getId());
     }
 }

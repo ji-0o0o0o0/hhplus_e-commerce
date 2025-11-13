@@ -41,7 +41,7 @@ class ProductServiceTest {
                 .id(productId)
                 .name("노트북")
                 .description("고성능 노트북")
-                .price(1000000)
+                .price(1000000L)
                 .stock(10)
                 .category("전자제품")
                 .build();
@@ -88,7 +88,7 @@ class ProductServiceTest {
         Product product2 = Product.builder()
                 .id(2L)
                 .name("마우스")
-                .price(50000)
+                .price(50000L)
                 .stock(20)
                 .category("전자제품")
                 .build();

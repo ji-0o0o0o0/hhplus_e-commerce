@@ -22,7 +22,7 @@ public class OrderController implements OrderApi {
         // 장바구니에서 상품 조회 → 재고 확인 → 쿠폰 적용 → 주문 생성
 
         // Mock: 쿠폰 검증
-        if (request.getCouponId() != null && request.getCouponId() == 999L) {
+        if (request.couponId() != null && request.couponId() == 999L) {
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
                     .body(ApiResponse.error(404, "쿠폰을 찾을 수 없습니다."));
@@ -35,7 +35,7 @@ public class OrderController implements OrderApi {
 
         OrderResponse response = new OrderResponse(
                 1L,
-                request.getUserId(),
+                request.userId(),
                 2000000,
                 200000,
                 1800000,

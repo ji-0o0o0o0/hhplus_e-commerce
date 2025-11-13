@@ -64,7 +64,7 @@ class PaymentServiceTest {
         product = Product.builder()
                 .id(1L)
                 .name("노트북")
-                .price(1000000)
+                .price(1000000L)
                 .stock(10)
                 .category("전자제품")
                 .build();
@@ -73,24 +73,24 @@ class PaymentServiceTest {
                 .productId(1L)
                 .productName("노트북")
                 .quantity(1)
-                .unitPrice(1000000)
-                .subtotal(1000000)
+                .unitPrice(1000000L)
+                .subtotal(1000000L)
                 .build();
 
         order = Order.builder()
                 .id(orderId)
                 .userId(userId)
                 .items(List.of(orderItem))
-                .totalAmount(1000000)
-                .discountAmount(0)
-                .finalAmount(1000000)
+                .totalAmount(1000000L)
+                .discountAmount(0L)
+                .finalAmount(1000000L)
                 .status(OrderStatus.PENDING)
                 .build();
 
         point = Point.builder()
                 .id(1L)
                 .userId(userId)
-                .amount(1500000)
+                .amount(1500000L)
                 .build();
     }
 
@@ -125,9 +125,9 @@ class PaymentServiceTest {
                 .id(orderId)
                 .userId(userId)
                 .items(order.getItems())
-                .totalAmount(1000000)
-                .discountAmount(100000)
-                .finalAmount(900000)
+                .totalAmount(1000000L)
+                .discountAmount(100000L)
+                .finalAmount(900000L)
                 .couponId(couponId)
                 .status(OrderStatus.PENDING)
                 .build();
@@ -190,8 +190,8 @@ class PaymentServiceTest {
                 .id(orderId)
                 .userId(userId)
                 .items(order.getItems())
-                .totalAmount(1000000)
-                .finalAmount(1000000)
+                .totalAmount(1000000L)
+                .finalAmount(1000000L)
                 .status(OrderStatus.COMPLETED)  // 이미 완료됨
                 .build();
 
@@ -210,7 +210,7 @@ class PaymentServiceTest {
         Point insufficientPoint = Point.builder()
                 .id(1L)
                 .userId(userId)
-                .amount(500000)  // 부족한 금액
+                .amount(500000L)  // 부족한 금액
                 .build();
 
         given(orderRepository.findById(orderId)).willReturn(Optional.of(order));
@@ -229,7 +229,7 @@ class PaymentServiceTest {
         Product lowStockProduct = Product.builder()
                 .id(1L)
                 .name("노트북")
-                .price(1000000)
+                .price(1000000L)
                 .stock(0)  // 재고 없음
                 .category("전자제품")
                 .build();

@@ -20,16 +20,13 @@ public class CartService {
 
     // 장바구니 추가
     public CartItem addCartItem(Long userId, Long productId, Integer quantity) {
-        // 1. 상품 조회
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
 
-        // 2. 재고 확인
-        if (product.getStock() < quantity) {
+        if (!product.hasSufficientStock(quantity)) {
             throw new BusinessException(ErrorCode.PRODUCT_INSUFFICIENT_STOCK);
         }
 
-        // 3. 이미 장바구니에 있는지 확인 (있으면 수량 증가, 없으면 새로 생성)
         Optional<CartItem> existingItem = cartItemRepository.findByUserIdAndProductId(userId, productId);
 
         if (existingItem.isPresent()) {
@@ -42,7 +39,6 @@ public class CartService {
         }
     }
 
-    //장바구니 조회
     public List<CartItem> getCartItems(Long userId) {
         return cartItemRepository.findByUserId(userId);
     }
@@ -57,7 +53,7 @@ public class CartService {
             throw new BusinessException(ErrorCode.CART_ITEM_ACCESS_DENIED);
         }
 
-        cartItemRepository.delete(cartItemId);
+        cartItemRepository.deleteById(cartItemId);
     }
 
     //장바구니 삭제 2. 수량만 감소 (수량 1개씩 빼기)
@@ -70,21 +66,18 @@ public class CartService {
         }
 
         // 수량 감소
-        int newQuantity = cartItem.getQuantity() - quantity;
+        cartItem.decreaseQuantity(quantity);
 
-        if (newQuantity <= 0) {
-            // 수량이 0 이하면 삭제
-            cartItemRepository.delete(cartItemId);
+        if (cartItem.isQuantityZeroOrLess()) {
+            cartItemRepository.deleteById(cartItemId);
             return null;
         } else {
-            // 수량 업데이트
-            cartItem.updateQuantity(newQuantity);
             return cartItemRepository.save(cartItem);
         }
+
     }
 
 
-    //장바구니 전체 삭제
     public void clearCart(Long userId) {
         cartItemRepository.deleteAllByUserId(userId);
     }

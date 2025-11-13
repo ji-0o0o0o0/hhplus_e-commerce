@@ -1,7 +1,9 @@
 package com.hhplus.hhplus_ecommerce.coupon.domain;
 
+import com.hhplus.hhplus_ecommerce.common.BaseTimeEntity;
 import com.hhplus.hhplus_ecommerce.common.exception.BusinessException;
 import com.hhplus.hhplus_ecommerce.common.exception.ErrorCode;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
@@ -9,22 +11,41 @@ import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
 
-
+@Entity
+@Table(name = "coupons")
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Coupon {
+public class Coupon extends BaseTimeEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false,length = 100)
     private String name;
+
+    @Column(nullable = false)
     private Integer discountRate;
+
+    @Column(nullable = false)
     private Integer totalQuantity;
+
+    @Column(nullable = false)
     private Integer issuedQuantity;
+
+    @Column(nullable = false)
     private Integer validityDays;
+
+    @Column(nullable = false)
     private LocalDateTime startDate;
+
+    @Column(nullable = false)
     private LocalDateTime endDate;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+
+    @Version
+    private Long version;
 
     // 새 쿠폰 생성
     public static Coupon create( String name, Integer discountRate,
@@ -37,8 +58,6 @@ public class Coupon {
                 .validityDays(validityDays)
                 .startDate(startDate)
                 .endDate(endDate)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
                 .build();
     }
 
@@ -53,7 +72,6 @@ public class Coupon {
             throw new BusinessException(ErrorCode.COUPON_SOLD_OUT);
         }
         this.issuedQuantity++;
-        this.updatedAt = LocalDateTime.now();
     }
 
     // 비즈니스 로직: 유효기간 체크

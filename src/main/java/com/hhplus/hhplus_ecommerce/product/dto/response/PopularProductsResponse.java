@@ -6,11 +6,9 @@ import lombok.Getter;
 
 import java.util.List;
 
-@Getter
-@AllArgsConstructor
 @Schema(description = "인기 상품 조회 응답")
-public class PopularProductsResponse {
+public record PopularProductsResponse (
 
     @Schema(description = "인기 상품 목록 (최대 5개)")
-    private List<PopularProductDto> products;
-}
+    List<PopularProductDto> products
+){}

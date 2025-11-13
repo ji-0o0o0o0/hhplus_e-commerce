@@ -30,7 +30,7 @@ class PointTest {
         Point point = Point.create(1L);
 
         // when
-        point.charge(10000);
+        point.charge(10000L);
 
         // then
         assertThat(point.getAmount()).isEqualTo(10000);
@@ -43,7 +43,7 @@ class PointTest {
         Point point = Point.create(1L);
 
         // when & then
-        assertThatThrownBy(() -> point.charge(0))
+        assertThatThrownBy(() -> point.charge(0L))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POINT_INVALID_CHARGE_AMOUNT);
     }
@@ -55,7 +55,7 @@ class PointTest {
         Point point = Point.create(1L);
 
         // when & then
-        assertThatThrownBy(() -> point.charge(-1000))
+        assertThatThrownBy(() -> point.charge(-1000L))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POINT_INVALID_CHARGE_AMOUNT);
     }
@@ -67,7 +67,7 @@ class PointTest {
         Point point = Point.create(1L);
 
         // when & then
-        assertThatThrownBy(() -> point.charge(1_000_001))
+        assertThatThrownBy(() -> point.charge(1_000_001L))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POINT_CHARGE_AMOUNT_EXCEEDS_ONCE);
     }
@@ -77,19 +77,19 @@ class PointTest {
     void charge_최대보유포인트초과_예외() {
         // given
         Point point = Point.create(1L);
-        point.charge(1_000_000);  // 1회 최대 금액으로 충전
-        point.charge(1_000_000);
-        point.charge(1_000_000);
-        point.charge(1_000_000);
-        point.charge(1_000_000);
-        point.charge(1_000_000);
-        point.charge(1_000_000);
-        point.charge(1_000_000);
-        point.charge(1_000_000);
-        point.charge(1_000_000);  // 총 10,000,000 (최대치)
+        point.charge(1_000_000L);  // 1회 최대 금액으로 충전
+        point.charge(1_000_000L);
+        point.charge(1_000_000L);
+        point.charge(1_000_000L);
+        point.charge(1_000_000L);
+        point.charge(1_000_000L);
+        point.charge(1_000_000L);
+        point.charge(1_000_000L);
+        point.charge(1_000_000L);
+        point.charge(1_000_000L);  // 총 10,000,000 (최대치)
 
         // when & then
-        assertThatThrownBy(() -> point.charge(1))  // 10,000,001이 되어 초과
+        assertThatThrownBy(() -> point.charge(1L))  // 10,000,001이 되어 초과
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POINT_MAX_BALANCE_EXCEEDED);
     }
@@ -99,10 +99,10 @@ class PointTest {
     void use_성공() {
         // given
         Point point = Point.create(1L);
-        point.charge(10000);
+        point.charge(10000L);
 
         // when
-        point.use(3000);
+        point.use(3000L);
 
         // then
         assertThat(point.getAmount()).isEqualTo(7000);
@@ -113,10 +113,10 @@ class PointTest {
     void use_0원이하_예외() {
         // given
         Point point = Point.create(1L);
-        point.charge(10000);
+        point.charge(10000L);
 
         // when & then
-        assertThatThrownBy(() -> point.use(0))
+        assertThatThrownBy(() -> point.use(0L))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POINT_INVALID_USE_AMOUNT);
     }
@@ -126,10 +126,10 @@ class PointTest {
     void use_잔액부족_예외() {
         // given
         Point point = Point.create(1L);
-        point.charge(5000);
+        point.charge(5000L);
 
         // when & then
-        assertThatThrownBy(() -> point.use(10000))
+        assertThatThrownBy(() -> point.use(10000L))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POINT_INSUFFICIENT_BALANCE);
     }

@@ -47,7 +47,7 @@ class CartServiceTest {
         product = Product.builder()
                 .id(productId)
                 .name("노트북")
-                .price(1000000)
+                .price(1000000L)
                 .stock(10)
                 .category("전자제품")
                 .build();
@@ -120,7 +120,7 @@ class CartServiceTest {
         Product lowStockProduct = Product.builder()
                 .id(productId)
                 .name("노트북")
-                .price(1000000)
+                .price(1000000L)
                 .stock(2)
                 .category("전자제품")
                 .build();
@@ -159,7 +159,7 @@ class CartServiceTest {
         cartService.removeCartItem(userId, cartItemId);
 
         // then
-        verify(cartItemRepository).delete(cartItemId);
+        verify(cartItemRepository).deleteById(cartItemId);
     }
 
     @Test
@@ -219,7 +219,7 @@ class CartServiceTest {
 
         // then
         assertThat(result).isNull();
-        verify(cartItemRepository).delete(cartItemId);
+        verify(cartItemRepository).deleteById(cartItemId);
         verify(cartItemRepository, never()).save(any(CartItem.class));
     }
 

@@ -18,12 +18,12 @@ class OrderTest {
     @DisplayName("주문을 생성할 수 있다")
     void create_성공() {
         // given
-        Product product = Product.create("노트북", "고성능", 2000000, 10, "전자제품");
+        Product product = Product.create("노트북", "고성능", 2000000L, 10, "전자제품");
         OrderItem item = OrderItem.create(product, 2);
         List<OrderItem> items = List.of(item);
 
         // when
-        Order order = Order.create(1L, items, null, 0);
+        Order order = Order.create(1L, items, null, 0L);
 
         // then
         assertAll(
@@ -37,10 +37,10 @@ class OrderTest {
     @DisplayName("쿠폰 할인이 적용된 주문을 생성할 수 있다")
     void create_쿠폰할인_성공() {
         // given
-        Product product = Product.create("노트북", "고성능", 1000000, 10, "전자제품");
+        Product product = Product.create("노트북", "고성능", 1000000L, 10, "전자제품");
         OrderItem item = OrderItem.create(product, 1);
         List<OrderItem> items = List.of(item);
-        Integer discountAmount = 100000; // 10% 할인
+        Long discountAmount = 100000L; // 10% 할인
 
         // when
         Order order = Order.create(1L, items, 1L, discountAmount);
@@ -58,9 +58,9 @@ class OrderTest {
     @DisplayName("주문을 완료할 수 있다")
     void complete_성공() {
         // given
-        Product product = Product.create("노트북", "고성능", 1000000, 10, "전자제품");
+        Product product = Product.create("노트북", "고성능", 1000000L, 10, "전자제품");
         OrderItem item = OrderItem.create(product, 1);
-        Order order = Order.create(1L, List.of(item), null, 0);
+        Order order = Order.create(1L, List.of(item), null, 0L);
 
         // when
         order.complete();
@@ -73,9 +73,9 @@ class OrderTest {
     @DisplayName("결제할 수 없는 주문은 완료할 수 없다")
     void complete_결제불가_예외() {
         // given
-        Product product = Product.create("노트북", "고성능", 1000000, 10, "전자제품");
+        Product product = Product.create("노트북", "고성능", 1000000L, 10, "전자제품");
         OrderItem item = OrderItem.create(product, 1);
-        Order order = Order.create(1L, List.of(item), null, 0);
+        Order order = Order.create(1L, List.of(item), null, 0L);
         order.complete(); // 이미 완료됨
 
         // when & then
@@ -88,9 +88,9 @@ class OrderTest {
     @DisplayName("주문을 취소할 수 있다")
     void cancel_성공() {
         // given
-        Product product = Product.create("노트북", "고성능", 1000000, 10, "전자제품");
+        Product product = Product.create("노트북", "고성능", 1000000L, 10, "전자제품");
         OrderItem item = OrderItem.create(product, 1);
-        Order order = Order.create(1L, List.of(item), null, 0);
+        Order order = Order.create(1L, List.of(item), null, 0L);
 
         // when
         order.cancel();
@@ -103,9 +103,9 @@ class OrderTest {
     @DisplayName("완료된 주문은 취소할 수 없다")
     void cancel_완료된주문_예외() {
         // given
-        Product product = Product.create("노트북", "고성능", 1000000, 10, "전자제품");
+        Product product = Product.create("노트북", "고성능", 1000000L, 10, "전자제품");
         OrderItem item = OrderItem.create(product, 1);
-        Order order = Order.create(1L, List.of(item), null, 0);
+        Order order = Order.create(1L, List.of(item), null, 0L);
         order.complete();
 
         // when & then
