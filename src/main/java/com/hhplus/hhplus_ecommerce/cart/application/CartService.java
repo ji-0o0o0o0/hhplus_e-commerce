@@ -53,7 +53,7 @@ public class CartService {
             throw new BusinessException(ErrorCode.CART_ITEM_ACCESS_DENIED);
         }
 
-        cartItemRepository.delete(cartItemId);
+        cartItemRepository.deleteById(cartItemId);
     }
 
     //장바구니 삭제 2. 수량만 감소 (수량 1개씩 빼기)
@@ -69,7 +69,7 @@ public class CartService {
         cartItem.decreaseQuantity(quantity);
 
         if (cartItem.isQuantityZeroOrLess()) {
-            cartItemRepository.delete(cartItemId);
+            cartItemRepository.deleteById(cartItemId);
             return null;
         } else {
             return cartItemRepository.save(cartItem);

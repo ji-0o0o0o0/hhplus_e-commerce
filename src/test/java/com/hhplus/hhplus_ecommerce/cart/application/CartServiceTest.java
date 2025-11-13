@@ -159,7 +159,7 @@ class CartServiceTest {
         cartService.removeCartItem(userId, cartItemId);
 
         // then
-        verify(cartItemRepository).delete(cartItemId);
+        verify(cartItemRepository).deleteById(cartItemId);
     }
 
     @Test
@@ -219,7 +219,7 @@ class CartServiceTest {
 
         // then
         assertThat(result).isNull();
-        verify(cartItemRepository).delete(cartItemId);
+        verify(cartItemRepository).deleteById(cartItemId);
         verify(cartItemRepository, never()).save(any(CartItem.class));
     }
 
