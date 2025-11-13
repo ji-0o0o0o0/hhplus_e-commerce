@@ -51,7 +51,8 @@ public enum ErrorCode {
 
     // 락
     LOCK_ACQUISITION_FAILED(409, "락 획득에 실패했습니다. 잠시 후 다시 시도해주세요"),
-    LOCK_INTERRUPTED(500, "락 대기 중 인터럽트가 발생했습니다");
+    LOCK_INTERRUPTED(500, "락 대기 중 인터럽트가 발생했습니다"),
+    CONCURRENCY_CONFLICT(409, "동시성 충돌이 발생했습니다. 잠시 후 다시 시도해주세요");
 
     private final int status;
     private final String message;
