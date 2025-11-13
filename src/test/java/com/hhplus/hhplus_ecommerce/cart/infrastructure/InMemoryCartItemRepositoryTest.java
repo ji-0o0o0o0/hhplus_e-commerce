@@ -48,7 +48,6 @@ class InMemoryCartItemRepositoryTest {
                 .userId(saved.getUserId())
                 .productId(saved.getProductId())
                 .quantity(5)
-                .createdAt(saved.getCreatedAt())
                 .build();
         CartItem result = repository.save(updated);
 

@@ -22,7 +22,7 @@ public class PointController implements PointApi {
         PointResponse response = new PointResponse(
                 1L,
                 userId,
-                100000,
+                100000L,
                 LocalDateTime.now()
         );
         return ResponseEntity.ok(ApiResponse.success(response));
@@ -43,8 +43,8 @@ public class PointController implements PointApi {
     public ResponseEntity<ApiResponse<TransactionListResponse>> getTransactions(
             Long userId, Integer page, Integer size, String type) {
         List<TransactionDto> transactions = List.of(
-                new TransactionDto(1L, "CHARGE", 100000, 150000, LocalDateTime.now().minusDays(1)),
-                new TransactionDto(1L, "USE", 50000, 100000, LocalDateTime.now())
+                new TransactionDto(1L, "CHARGE", 100000L, 150000L, LocalDateTime.now().minusDays(1)),
+                new TransactionDto(1L, "USE", 50000L, 100000L, LocalDateTime.now())
         );
 
         TransactionListResponse response = new TransactionListResponse(

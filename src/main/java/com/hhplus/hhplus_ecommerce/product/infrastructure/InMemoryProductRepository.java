@@ -8,7 +8,6 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.stream.Collectors;
 
 @Repository
 public class InMemoryProductRepository implements ProductRepository {
@@ -30,8 +29,7 @@ public class InMemoryProductRepository implements ProductRepository {
                     .price(product.getPrice())
                     .stock(product.getStock())
                     .category(product.getCategory())
-                    .createdAt(product.getCreatedAt())
-                    .updatedAt(product.getUpdatedAt())
+
                     .build();
             store.put(newProduct.getId(), newProduct);
             return newProduct;

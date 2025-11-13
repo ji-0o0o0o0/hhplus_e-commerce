@@ -66,8 +66,6 @@ class InMemoryCouponRepositoryTest {
                 .validityDays(saved.getValidityDays())
                 .startDate(saved.getStartDate())
                 .endDate(saved.getEndDate())
-                .createdAt(saved.getCreatedAt())
-                .updatedAt(LocalDateTime.now())
                 .build();
         Coupon result = repository.save(updated);
 

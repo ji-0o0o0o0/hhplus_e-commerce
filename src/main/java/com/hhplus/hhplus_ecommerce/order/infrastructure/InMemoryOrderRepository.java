@@ -31,8 +31,6 @@ public class InMemoryOrderRepository implements OrderRepository {
                     .discountAmount(order.getDiscountAmount())
                     .finalAmount(order.getFinalAmount())
                     .status(order.getStatus())
-                    .createdAt(order.getCreatedAt())
-                    .updatedAt(order.getUpdatedAt())
                     .build();
             store.put(newOrder.getId(), newOrder);
             return newOrder;

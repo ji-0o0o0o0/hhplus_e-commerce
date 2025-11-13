@@ -23,8 +23,6 @@ public class InMemoryUserRepository implements UserRepository {
             User newUser = User.builder()
                     .id(idGenerator.getAndIncrement())
                     .name(user.getName())
-                    .createdAt(user.getCreatedAt())
-                    .updatedAt(user.getUpdatedAt())
                     .build();
             store.put(newUser.getId(), newUser);
             return newUser;

@@ -16,7 +16,7 @@ public record PointResponse (
     Long userId,
 
     @Schema(description = "포인트 금액", example = "100000")
-    Integer amount,
+    Long amount,
 
     @Schema(description = "마지막 업데이트 시간", example = "2025-10-29T10:00:00")
     LocalDateTime updatedAt

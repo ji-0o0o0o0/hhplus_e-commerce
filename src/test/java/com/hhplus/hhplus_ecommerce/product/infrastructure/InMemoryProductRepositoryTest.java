@@ -24,7 +24,7 @@ class InMemoryProductRepositoryTest {
     @DisplayName("새로운 상품을 저장할 수 있다")
     void save_신규_성공() {
         // given
-        Product product = Product.create("노트북", "고성능", 1000000, 10, "전자제품");
+        Product product = Product.create("노트북", "고성능", 1000000L, 10, "전자제품");
 
         // when
         Product saved = repository.save(product);
@@ -39,7 +39,7 @@ class InMemoryProductRepositoryTest {
     @DisplayName("기존 상품을 업데이트할 수 있다")
     void save_업데이트_성공() {
         // given
-        Product product = Product.create("노트북", "고성능", 1000000, 10, "전자제품");
+        Product product = Product.create("노트북", "고성능", 1000000L, 10, "전자제품");
         Product saved = repository.save(product);
 
         // when
@@ -47,11 +47,9 @@ class InMemoryProductRepositoryTest {
                 .id(saved.getId())
                 .name("노트북")
                 .description("고성능")
-                .price(900000)
+                .price(900000L)
                 .stock(5)
                 .category("전자제품")
-                .createdAt(saved.getCreatedAt())
-                .updatedAt(LocalDateTime.now())
                 .build();
         Product result = repository.save(updated);
 
@@ -64,7 +62,7 @@ class InMemoryProductRepositoryTest {
     @DisplayName("ID로 상품을 조회할 수 있다")
     void findById_성공() {
         // given
-        Product product = Product.create("노트북", "고성능", 1000000, 10, "전자제품");
+        Product product = Product.create("노트북", "고성능", 1000000L, 10, "전자제품");
         Product saved = repository.save(product);
 
         // when
@@ -89,8 +87,8 @@ class InMemoryProductRepositoryTest {
     @DisplayName("모든 상품을 조회할 수 있다")
     void findAll_성공() {
         // given
-        repository.save(Product.create("노트북", "고성능", 1000000, 10, "전자제품"));
-        repository.save(Product.create("마우스", "무선", 50000, 20, "전자제품"));
+        repository.save(Product.create("노트북", "고성능", 1000000L, 10, "전자제품"));
+        repository.save(Product.create("마우스", "무선", 50000L, 20, "전자제품"));
 
         // when
         List<Product> products = repository.findAll();
@@ -103,9 +101,9 @@ class InMemoryProductRepositoryTest {
     @DisplayName("카테고리로 상품을 조회할 수 있다")
     void findByCategory_성공() {
         // given
-        repository.save(Product.create("노트북", "고성능", 1000000, 10, "전자제품"));
-        repository.save(Product.create("마우스", "무선", 50000, 20, "전자제품"));
-        repository.save(Product.create("의자", "편안한", 200000, 5, "가구"));
+        repository.save(Product.create("노트북", "고성능", 1000000L, 10, "전자제품"));
+        repository.save(Product.create("마우스", "무선", 50000L, 20, "전자제품"));
+        repository.save(Product.create("의자", "편안한", 200000L, 5, "가구"));
 
         // when
         List<Product> electronics = repository.findByCategory("전자제품");
@@ -118,9 +116,9 @@ class InMemoryProductRepositoryTest {
     @DisplayName("인기 상품을 조회할 수 있다")
     void findTopSellingProducts_성공() {
         // given
-        Product p1 = repository.save(Product.create("노트북", "고성능", 1000000, 10, "전자제품"));
-        Product p2 = repository.save(Product.create("마우스", "무선", 50000, 20, "전자제품"));
-        Product p3 = repository.save(Product.create("키보드", "기계식", 100000, 15, "전자제품"));
+        Product p1 = repository.save(Product.create("노트북", "고성능", 1000000L, 10, "전자제품"));
+        Product p2 = repository.save(Product.create("마우스", "무선", 50000L, 20, "전자제품"));
+        Product p3 = repository.save(Product.create("키보드", "기계식", 100000L, 15, "전자제품"));
 
         repository.recordSale(p1.getId(), 100);
         repository.recordSale(p2.getId(), 200);
@@ -139,7 +137,7 @@ class InMemoryProductRepositoryTest {
     @DisplayName("판매 기록을 누적할 수 있다")
     void recordSale_누적() {
         // given
-        Product product = repository.save(Product.create("노트북", "고성능", 1000000, 10, "전자제품"));
+        Product product = repository.save(Product.create("노트북", "고성능", 1000000L, 10, "전자제품"));
 
         // when
         repository.recordSale(product.getId(), 10);
@@ -154,8 +152,8 @@ class InMemoryProductRepositoryTest {
     @DisplayName("저장소를 초기화할 수 있다")
     void clear_성공() {
         // given
-        repository.save(Product.create("노트북", "고성능", 1000000, 10, "전자제품"));
-        repository.save(Product.create("마우스", "무선", 50000, 20, "전자제품"));
+        repository.save(Product.create("노트북", "고성능", 1000000L, 10, "전자제품"));
+        repository.save(Product.create("마우스", "무선", 50000L, 20, "전자제품"));
 
         // when
         repository.clear();

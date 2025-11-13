@@ -16,5 +16,5 @@ public record ChargePointRequest (
     @NotNull(message = "충전 금액은 필수입니다")
     @Min(value = 1, message = "충전 금액은 0보다 커야 합니다")
     @Schema(description = "충전할 포인트", example = "100000", required = true)
-    Integer amount
+    Long amount
 ){}

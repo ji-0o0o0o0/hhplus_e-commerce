@@ -16,10 +16,10 @@ public record TransactionDto (
     String type,
 
     @Schema(description = "거래 금액", example = "100000")
-    Integer amount,
+    Long amount,
 
     @Schema(description = "거래 후 포인트", example = "150000")
-    Integer balanceAfter,
+    Long balanceAfter,
 
     @Schema(description = "거래 시간", example = "2025-10-29T10:00:00")
     LocalDateTime createdAt

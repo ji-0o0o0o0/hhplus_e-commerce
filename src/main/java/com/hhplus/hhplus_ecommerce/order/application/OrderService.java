@@ -63,7 +63,7 @@ public class OrderService {
             orderItems.add(orderItem);
         }
 
-        Integer discountAmount = 0;
+        Long discountAmount = 0L;
         if (couponId != null) {
             UserCoupon userCoupon = userCouponRepository.findByUserIdAndCouponId(userId, couponId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.COUPON_NOT_FOUND));
@@ -73,8 +73,8 @@ public class OrderService {
             }
 
             // 주문 총액 계산
-            int totalAmount = orderItems.stream()
-                    .mapToInt(OrderItem::getSubtotal)
+            long totalAmount = orderItems.stream()
+                    .mapToLong(OrderItem::getSubtotal)
                     .sum();
             discountAmount = userCoupon.calculateDiscount(totalAmount);
         }

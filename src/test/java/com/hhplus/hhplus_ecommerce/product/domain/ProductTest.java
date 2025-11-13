@@ -14,7 +14,7 @@ class ProductTest {
     @DisplayName("상품을 생성할 수 있다")
     void create_성공() {
         // when
-        Product product = Product.create("노트북", "고성능", 1000000, 10, "전자제품");
+        Product product = Product.create("노트북", "고성능", 1000000L, 10, "전자제품");
 
         // then
         assertAll(
@@ -32,7 +32,7 @@ class ProductTest {
     @DisplayName("재고를 차감할 수 있다")
     void decreaseStock_성공() {
         // given
-        Product product = Product.create("노트북", "고성능", 2000000, 10, "전자제품");
+        Product product = Product.create("노트북", "고성능", 2000000L, 10, "전자제품");
 
         // when
         product.decreaseStock(3);
@@ -45,7 +45,7 @@ class ProductTest {
     @DisplayName("재고가 부족하면 예외가 발생한다")
     void decreaseStock_재고부족_예외() {
         // given
-        Product product = Product.create("노트북", "고성능", 2000000, 2, "전자제품");
+        Product product = Product.create("노트북", "고성능", 2000000L, 2, "전자제품");
 
         // when & then
         assertThatThrownBy(() -> product.decreaseStock(3))
@@ -57,7 +57,7 @@ class ProductTest {
     @DisplayName("재고를 증가시킬 수 있다")
     void increaseStock_성공() {
         // given
-        Product product = Product.create("노트북", "고성능", 2000000, 5, "전자제품");
+        Product product = Product.create("노트북", "고성능", 2000000L, 5, "전자제품");
 
         // when
         product.increaseStock(3);
@@ -70,7 +70,7 @@ class ProductTest {
     @DisplayName("상품명이 null이면 생성할 수 없다")
     void create_상품명null_예외() {
         // when & then
-        assertThatThrownBy(() -> Product.create(null, "고성능", 1000000, 10, "전자제품"))
+        assertThatThrownBy(() -> Product.create(null, "고성능", 1000000L, 10, "전자제품"))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PRODUCT_INVALID_NAME);
     }
@@ -79,7 +79,7 @@ class ProductTest {
     @DisplayName("상품 생성 시 이름이 비어있으면 예외가 발생한다")
     void create_이름없음_예외() {
         // when & then
-        assertThatThrownBy(() -> Product.create("", "고성능", 2000000, 10, "전자제품"))
+        assertThatThrownBy(() -> Product.create("", "고성능", 2000000L, 10, "전자제품"))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PRODUCT_INVALID_NAME);
     }
@@ -88,7 +88,7 @@ class ProductTest {
     @DisplayName("상품명이 공백이면 생성할 수 없다")
     void create_상품명공백_예외() {
         // when & then
-        assertThatThrownBy(() -> Product.create("   ", "고성능", 1000000, 10, "전자제품"))
+        assertThatThrownBy(() -> Product.create("   ", "고성능", 1000000L, 10, "전자제품"))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PRODUCT_INVALID_NAME);
     }
@@ -106,7 +106,7 @@ class ProductTest {
     @DisplayName("상품 생성 시 가격이 음수면 예외가 발생한다")
     void create_가격음수_예외() {
         // when & then
-        assertThatThrownBy(() -> Product.create("노트북", "고성능", -1000, 10, "전자제품"))
+        assertThatThrownBy(() -> Product.create("노트북", "고성능", -1000L, 10, "전자제품"))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PRODUCT_INVALID_PRICE);
     }
@@ -115,7 +115,7 @@ class ProductTest {
     @DisplayName("재고가 null이면 생성할 수 없다")
     void create_재고null_예외() {
         // when & then
-        assertThatThrownBy(() -> Product.create("노트북", "고성능", 1000000, null, "전자제품"))
+        assertThatThrownBy(() -> Product.create("노트북", "고성능", 1000000L, null, "전자제품"))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PRODUCT_INVALID_STOCK);
     }
@@ -124,7 +124,7 @@ class ProductTest {
     @DisplayName("상품 생성 시 재고가 음수면 예외가 발생한다")
     void create_재고음수_예외() {
         // when & then
-        assertThatThrownBy(() -> Product.create("노트북", "고성능", 2000000, -1, "전자제품"))
+        assertThatThrownBy(() -> Product.create("노트북", "고성능", 2000000L, -1, "전자제품"))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PRODUCT_INVALID_STOCK);
     }

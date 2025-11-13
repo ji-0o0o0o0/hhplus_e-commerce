@@ -1,30 +1,38 @@
 package com.hhplus.hhplus_ecommerce.cart.domain;
 
+import com.hhplus.hhplus_ecommerce.common.BaseTimeEntity;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
-
+@Entity
+@Table(name = "cart_items")
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CartItem {
+public class CartItem extends BaseTimeEntity{
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false)
     private Long userId;
+
+    @Column(nullable = false)
     private Long productId;
+
+    @Column(nullable = false)
     private Integer quantity;
-    private LocalDateTime createdAt;
+
 
     public static CartItem create(Long userId, Long productId, Integer quantity) {
         return CartItem.builder()
                 .userId(userId)
                 .productId(productId)
                 .quantity(quantity)
-                .createdAt(LocalDateTime.now())
                 .build();
     }
 

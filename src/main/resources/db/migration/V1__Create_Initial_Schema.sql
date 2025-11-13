@@ -24,7 +24,7 @@ CREATE TABLE users (
 CREATE TABLE points (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '잔액 ID',
     user_id BIGINT NOT NULL UNIQUE COMMENT '사용자 ID',
-    amount DECIMAL(15,2) NOT NULL DEFAULT 0 COMMENT '잔액',
+    amount BIGINT NOT NULL DEFAULT 0 COMMENT '잔액',
     version BIGINT NOT NULL DEFAULT 0 COMMENT '낙관적 락 버전',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '마지막 업데이트 시간',
 
@@ -40,8 +40,8 @@ CREATE TABLE point_transactions (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '거래 ID',
     point_id BIGINT NOT NULL COMMENT '잔액 ID',
     type VARCHAR(10) NOT NULL COMMENT '거래 타입 (CHARGE, USE)',
-    amount DECIMAL(15,2) NOT NULL COMMENT '거래 금액',
-    balance_after DECIMAL(15,2) NOT NULL COMMENT '거래 후 잔액',
+    amount BIGINT NOT NULL COMMENT '거래 금액',
+    balance_after BIGINT NOT NULL COMMENT '거래 후 잔액',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '거래 시간',
 
     INDEX idx_point_trans_point_created (point_id, created_at)
@@ -54,7 +54,7 @@ CREATE TABLE products (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '상품 ID',
     name VARCHAR(200) NOT NULL COMMENT '상품명',
     description TEXT COMMENT '상품 설명',
-    price INT NOT NULL COMMENT '가격 (원 단위)',
+    price BIGINT NOT NULL COMMENT '가격 (원 단위)',
     stock INT NOT NULL DEFAULT 0 COMMENT '재고 수량',
     category VARCHAR(100) COMMENT '카테고리',
     version BIGINT NOT NULL DEFAULT 0 COMMENT '낙관적 락 버전',
@@ -77,6 +77,7 @@ CREATE TABLE cart_items (
     product_id BIGINT NOT NULL COMMENT '상품 ID',
     quantity INT NOT NULL COMMENT '수량',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성 시간',
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정 시간'
 
     CONSTRAINT chk_cart_items_quantity CHECK (quantity > 0),
 
@@ -134,9 +135,9 @@ CREATE TABLE orders (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '주문 ID',
     user_id BIGINT NOT NULL COMMENT '사용자 ID',
     coupon_id BIGINT COMMENT '사용한 쿠폰 ID',
-    total_amount INT NOT NULL COMMENT '총 금액 (원 단위)',
-    discount_amount INT NOT NULL DEFAULT 0 COMMENT '할인 금액 (원 단위)',
-    final_amount INT NOT NULL COMMENT '최종 결제 금액 (원 단위)',
+    total_amount BIGINT NOT NULL COMMENT '총 금액 (원 단위)',
+    discount_amount BIGINT NOT NULL DEFAULT 0 COMMENT '할인 금액 (원 단위)',
+    final_amount BIGINT NOT NULL COMMENT '최종 결제 금액 (원 단위)',
     status VARCHAR(20) NOT NULL COMMENT '주문 상태 (PENDING, COMPLETED, CANCELLED)',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '주문 생성 시간',
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정 시간',
@@ -154,7 +155,7 @@ CREATE TABLE order_items (
     order_id BIGINT NOT NULL COMMENT '주문 ID',
     product_id BIGINT NOT NULL COMMENT '상품 ID',
     product_name VARCHAR(200) NOT NULL COMMENT '상품명 (스냅샷)',
-    unit_price INT NOT NULL COMMENT '단가 (원 단위, 스냅샷)',
+    unit_price BIGINT NOT NULL COMMENT '단가 (원 단위, 스냅샷)',
     quantity INT NOT NULL COMMENT '수량',
     subtotal INT NOT NULL COMMENT '소계 (원 단위)',
 
@@ -171,8 +172,10 @@ CREATE TABLE data_transmissions (
     payload TEXT NOT NULL COMMENT '전송할 데이터 (JSON)',
     status VARCHAR(20) NOT NULL COMMENT '전송 상태 (PENDING, SUCCESS, FAILED)',
     attempts INT NOT NULL DEFAULT 0 COMMENT '재시도 횟수',
+    error_message TEXT COMMENT '실패 사유',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성 시간',
     sent_at DATETIME COMMENT '전송 완료 시간',
+    last_error_at DATETIME COMMENT '마지막 실패 시간'
 
     CONSTRAINT chk_data_trans_attempts CHECK (attempts >= 0),
 

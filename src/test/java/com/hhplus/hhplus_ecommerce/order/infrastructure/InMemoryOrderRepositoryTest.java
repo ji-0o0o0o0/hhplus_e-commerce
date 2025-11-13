@@ -24,7 +24,7 @@ class InMemoryOrderRepositoryTest {
     @DisplayName("새로운 주문을 저장할 수 있다")
     void save_신규_성공() {
         // given
-        Order order = Order.create(1L, List.of(), null, 0);
+        Order order = Order.create(1L, List.of(), null, 0L);
 
         // when
         Order saved = repository.save(order);
@@ -39,7 +39,7 @@ class InMemoryOrderRepositoryTest {
     @DisplayName("기존 주문을 업데이트할 수 있다")
     void save_업데이트_성공() {
         // given
-        Order order = Order.create(1L, List.of(), null, 0);
+        Order order = Order.create(1L, List.of(), null, 0L);
         Order saved = repository.save(order);
 
         // when
@@ -51,8 +51,6 @@ class InMemoryOrderRepositoryTest {
                 .discountAmount(saved.getDiscountAmount())
                 .finalAmount(saved.getFinalAmount())
                 .status(OrderStatus.COMPLETED)
-                .createdAt(saved.getCreatedAt())
-                .updatedAt(saved.getUpdatedAt())
                 .build();
         Order result = repository.save(updated);
 
@@ -64,7 +62,7 @@ class InMemoryOrderRepositoryTest {
     @DisplayName("ID로 주문을 조회할 수 있다")
     void findById_성공() {
         // given
-        Order order = Order.create(1L, List.of(), null, 0);
+        Order order = Order.create(1L, List.of(), null, 0L);
         Order saved = repository.save(order);
 
         // when
@@ -89,9 +87,9 @@ class InMemoryOrderRepositoryTest {
     @DisplayName("사용자 ID로 주문 목록을 조회할 수 있다")
     void findByUserId_성공() {
         // given
-        repository.save(Order.create(1L, List.of(), null, 0));
-        repository.save(Order.create(1L, List.of(), null, 0));
-        repository.save(Order.create(2L, List.of(), null, 0));
+        repository.save(Order.create(1L, List.of(), null, 0L));
+        repository.save(Order.create(1L, List.of(), null, 0L));
+        repository.save(Order.create(2L, List.of(), null, 0L));
 
         // when
         List<Order> orders = repository.findByUserId(1L);
@@ -104,10 +102,10 @@ class InMemoryOrderRepositoryTest {
     @DisplayName("상태로 주문 목록을 조회할 수 있다")
     void findByStatus_성공() {
         // given
-        Order order1 = Order.create(1L, List.of(), null, 0);
+        Order order1 = Order.create(1L, List.of(), null, 0L);
         Order saved1 = repository.save(order1);
 
-        Order order2 = Order.create(2L, List.of(), null, 0);
+        Order order2 = Order.create(2L, List.of(), null, 0L);
         repository.save(order2);
 
         Order completed = Order.builder()
@@ -118,8 +116,6 @@ class InMemoryOrderRepositoryTest {
                 .discountAmount(saved1.getDiscountAmount())
                 .finalAmount(saved1.getFinalAmount())
                 .status(OrderStatus.COMPLETED)
-                .createdAt(saved1.getCreatedAt())
-                .updatedAt(saved1.getUpdatedAt())
                 .build();
         repository.save(completed);
 
@@ -136,8 +132,8 @@ class InMemoryOrderRepositoryTest {
     @DisplayName("모든 주문을 조회할 수 있다")
     void findAll_성공() {
         // given
-        repository.save(Order.create(1L, List.of(), null, 0));
-        repository.save(Order.create(2L, List.of(), null, 0));
+        repository.save(Order.create(1L, List.of(), null, 0L));
+        repository.save(Order.create(2L, List.of(), null, 0L));
 
         // when
         List<Order> orders = repository.findAll();
@@ -150,8 +146,8 @@ class InMemoryOrderRepositoryTest {
     @DisplayName("저장소를 초기화할 수 있다")
     void clear_성공() {
         // given
-        repository.save(Order.create(1L, List.of(), null, 0));
-        repository.save(Order.create(2L, List.of(), null, 0));
+        repository.save(Order.create(1L, List.of(), null, 0L));
+        repository.save(Order.create(2L, List.of(), null, 0L));
 
         // when
         repository.clear();

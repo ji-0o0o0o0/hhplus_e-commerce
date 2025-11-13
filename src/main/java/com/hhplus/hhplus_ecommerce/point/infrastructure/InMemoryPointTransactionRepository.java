@@ -21,7 +21,7 @@ public class InMemoryPointTransactionRepository implements PointTransactionRepos
         if (transaction.getId() == null) {
             PointTransaction newTransaction = PointTransaction.builder()
                     .id(idGenerator.getAndIncrement())
-                    .userId(transaction.getUserId())
+                    .pointId(transaction.getPointId())
                     .type(transaction.getType())
                     .amount(transaction.getAmount())
                     .balanceAfter(transaction.getBalanceAfter())
@@ -30,7 +30,7 @@ public class InMemoryPointTransactionRepository implements PointTransactionRepos
             store.put(newTransaction.getId(), newTransaction);
 
             // userId 인덱스 업데이트
-            userIdIndex.computeIfAbsent(newTransaction.getUserId(), k -> new ArrayList<>())
+            userIdIndex.computeIfAbsent(newTransaction.getPointId(), k -> new ArrayList<>())
                     .add(newTransaction);
 
             return newTransaction;
@@ -41,20 +41,21 @@ public class InMemoryPointTransactionRepository implements PointTransactionRepos
     }
 
     @Override
-    public List<PointTransaction> findByUserId(Long userId) {
-        return userIdIndex.getOrDefault(userId, new ArrayList<>()).stream()
+    public List<PointTransaction> findByPointId(Long pointId) {
+        return userIdIndex.getOrDefault(pointId, new ArrayList<>()).stream()
                 .sorted(Comparator.comparing(PointTransaction::getCreatedAt).reversed())
-               .toList();
+                .toList();
     }
 
     @Override
-    public List<PointTransaction> findByUserId(Long userId, int offset, int limit) {
-        return userIdIndex.getOrDefault(userId, new ArrayList<>()).stream()
+    public List<PointTransaction> findByPointId(Long pointId, int offset, int limit) {
+        return userIdIndex.getOrDefault(pointId, new ArrayList<>()).stream()
                 .sorted(Comparator.comparing(PointTransaction::getCreatedAt).reversed())
                 .skip(offset)
                 .limit(limit)
-               .toList();
+                .toList();
     }
+
 
     public void clear() {
         store.clear();

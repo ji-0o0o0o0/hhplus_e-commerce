@@ -25,7 +25,6 @@ public class InMemoryCartItemRepository implements CartItemRepository {
                     .userId(cartItem.getUserId())
                     .productId(cartItem.getProductId())
                     .quantity(cartItem.getQuantity())
-                    .createdAt(cartItem.getCreatedAt())
                     .build();
             store.put(newItem.getId(), newItem);
             return newItem;

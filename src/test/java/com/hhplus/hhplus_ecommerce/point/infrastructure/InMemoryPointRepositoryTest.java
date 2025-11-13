@@ -45,7 +45,7 @@ class InMemoryPointRepositoryTest {
         Point updated = Point.builder()
                 .id(saved.getId())
                 .userId(saved.getUserId())
-                .amount(10000)
+                .amount(10000L)
                 .updatedAt(LocalDateTime.now())
                 .build();
         Point result = repository.save(updated);

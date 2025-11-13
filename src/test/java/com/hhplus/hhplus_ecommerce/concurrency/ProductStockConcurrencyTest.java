@@ -37,7 +37,7 @@ class ProductStockConcurrencyTest {
     @DisplayName("100명이 동시에 재고 50개 상품 구매 시 정확히 50개만 차감되고 50명만 성공한다")
     void concurrentStockDecrease_shouldDecreaseExactly50() throws InterruptedException {
         // Given: 재고 50개 상품 생성
-        Product product = Product.create("인기 상품", "재고 50개", 10000, 50, "전자기기");
+        Product product = Product.create("인기 상품", "재고 50개", 10000L, 50, "전자기기");
         Product savedProduct = productRepository.save(product);
 
         int threadCount = 100;
@@ -76,7 +76,7 @@ class ProductStockConcurrencyTest {
     @DisplayName("1000명이 동시에 재고 100개 상품 구매 시 정확히 100개만 차감된다")
     void concurrentStockDecrease_highLoad_shouldDecreaseExactly100() throws InterruptedException {
         // Given: 재고 100개 상품 생성
-        Product product = Product.create("대용량 상품", "재고 100개", 50000, 100, "가전");
+        Product product = Product.create("대용량 상품", "재고 100개", 50000L, 100, "가전");
         Product savedProduct = productRepository.save(product);
 
         int threadCount = 1000;
@@ -115,7 +115,7 @@ class ProductStockConcurrencyTest {
     @DisplayName("다양한 수량으로 동시 구매 시 재고가 정확히 계산된다")
     void concurrentStockDecrease_variousQuantities_shouldCalculateCorrectly() throws InterruptedException {
         // Given: 재고 100개 상품 생성
-        Product product = Product.create("혼합 구매 상품", "재고 100개", 20000, 100, "의류");
+        Product product = Product.create("혼합 구매 상품", "재고 100개", 20000L, 100, "의류");
         Product savedProduct = productRepository.save(product);
 
         int threadCount = 50;
@@ -153,7 +153,7 @@ class ProductStockConcurrencyTest {
     @DisplayName("동시 재고 증가 시 정확히 계산된다")
     void concurrentStockIncrease_shouldIncreaseCorrectly() throws InterruptedException {
         // Given: 재고 0개 상품 생성
-        Product product = Product.create("재입고 상품", "재고 0개", 30000, 0, "식품");
+        Product product = Product.create("재입고 상품", "재고 0개", 30000L, 0, "식품");
         Product savedProduct = productRepository.save(product);
 
         int threadCount = 100;
@@ -183,7 +183,7 @@ class ProductStockConcurrencyTest {
     @DisplayName("동시 재고 차감과 증가가 혼합되어도 정확히 계산된다")
     void concurrentStockMixed_shouldCalculateCorrectly() throws InterruptedException {
         // Given: 재고 50개 상품 생성
-        Product product = Product.create("혼합 작업 상품", "재고 50개", 15000, 50, "도서");
+        Product product = Product.create("혼합 작업 상품", "재고 50개", 15000L, 50, "도서");
         Product savedProduct = productRepository.save(product);
 
         int threadCount = 100;

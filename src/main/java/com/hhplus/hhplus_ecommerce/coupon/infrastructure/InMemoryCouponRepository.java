@@ -31,8 +31,6 @@ public class InMemoryCouponRepository implements CouponRepository {
                     .validityDays(coupon.getValidityDays())
                     .startDate(coupon.getStartDate())
                     .endDate(coupon.getEndDate())
-                    .createdAt(coupon.getCreatedAt())
-                    .updatedAt(coupon.getUpdatedAt())
                     .build();
             store.put(newCoupon.getId(), newCoupon);
             return newCoupon;

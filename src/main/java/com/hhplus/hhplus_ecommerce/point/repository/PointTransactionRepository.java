@@ -7,6 +7,6 @@ import java.util.List;
 public interface PointTransactionRepository {
 
     PointTransaction save(PointTransaction transaction);
-    List<PointTransaction> findByUserId(Long userId);
-    List<PointTransaction> findByUserId(Long userId, int offset, int limit);
+    List<PointTransaction> findByPointId(Long pointId);
+    List<PointTransaction> findByPointId(Long pointId, int offset, int limit);
 }

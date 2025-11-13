@@ -25,26 +25,34 @@ public class PointService {
                     return pointRepository.save(newPoint);
                 });
     }
-    public Point changePoint(Long userId, Integer amount) {
+    public Point changePoint(Long userId, Long amount) {
         Point point = getPoint(userId);
         point.charge(amount);
         Point savedPoint = pointRepository.save(point);
-        PointTransaction transaction = PointTransaction.create(userId,amount, TransactionType.CHARGE,savedPoint.getAmount());
+        PointTransaction transaction = PointTransaction.create(
+                savedPoint.getId(),
+                amount,
+                TransactionType.CHARGE,
+                savedPoint.getAmount()
+        );
         pointTransactionRepository.save(transaction);
 
         return savedPoint;
     }
-    public Point usePoint(Long userId, Integer amount) {
+    public Point usePoint(Long userId, Long amount) {
         Point point = getPoint(userId);
         point.use(amount);
         Point savedPoint = pointRepository.save(point);
-        PointTransaction transaction = PointTransaction.create(userId,amount, TransactionType.USE,savedPoint.getAmount());
+        PointTransaction transaction = PointTransaction.create(savedPoint.getId(),amount, TransactionType.USE,savedPoint.getAmount());
         pointTransactionRepository.save(transaction);
 
         return  savedPoint;
     }
 
     public List<PointTransaction> getPointTransactions(Long userId) {
-        return pointTransactionRepository.findByUserId(userId);
+        Point point = pointRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.POINT_NOT_FOUND));
+
+        return pointTransactionRepository.findByPointId(point.getId());
     }
 }

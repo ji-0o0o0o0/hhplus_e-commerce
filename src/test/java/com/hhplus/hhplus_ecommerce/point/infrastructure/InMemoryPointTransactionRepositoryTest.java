@@ -23,14 +23,14 @@ class InMemoryPointTransactionRepositoryTest {
     @DisplayName("새로운 포인트 거래를 저장할 수 있다")
     void save_신규_성공() {
         // given
-        PointTransaction transaction = PointTransaction.create(1L, 1000, TransactionType.CHARGE, 1000);
+        PointTransaction transaction = PointTransaction.create(1L, 1000L, TransactionType.CHARGE, 1000L);
 
         // when
         PointTransaction saved = repository.save(transaction);
 
         // then
         assertThat(saved.getId()).isNotNull();
-        assertThat(saved.getUserId()).isEqualTo(1L);
+        assertThat(saved.getPointId()).isEqualTo(1L);
         assertThat(saved.getAmount()).isEqualTo(1000);
         assertThat(saved.getType()).isEqualTo(TransactionType.CHARGE);
         assertThat(saved.getBalanceAfter()).isEqualTo(1000);
@@ -40,16 +40,16 @@ class InMemoryPointTransactionRepositoryTest {
     @DisplayName("기존 포인트 거래를 업데이트할 수 있다")
     void save_업데이트_성공() {
         // given
-        PointTransaction transaction = PointTransaction.create(1L, 1000, TransactionType.CHARGE, 1000);
+        PointTransaction transaction = PointTransaction.create(1L, 1000L, TransactionType.CHARGE, 1000L);
         PointTransaction saved = repository.save(transaction);
 
         // when
         PointTransaction updated = PointTransaction.builder()
                 .id(saved.getId())
-                .userId(saved.getUserId())
+                .pointId(saved.getPointId())
                 .type(saved.getType())
                 .amount(saved.getAmount())
-                .balanceAfter(2000)
+                .balanceAfter(2000L)
                 .createdAt(saved.getCreatedAt())
                 .build();
         PointTransaction result = repository.save(updated);
@@ -62,12 +62,12 @@ class InMemoryPointTransactionRepositoryTest {
     @DisplayName("사용자 ID로 거래 내역을 조회할 수 있다")
     void findByUserId_성공() {
         // given
-        repository.save(PointTransaction.create(1L, 1000, TransactionType.CHARGE, 1000));
-        repository.save(PointTransaction.create(1L, 500, TransactionType.USE, 500));
-        repository.save(PointTransaction.create(2L, 2000, TransactionType.CHARGE, 2000));
+        repository.save(PointTransaction.create(1L, 1000L, TransactionType.CHARGE, 1000L));
+        repository.save(PointTransaction.create(1L, 500L, TransactionType.USE, 500L));
+        repository.save(PointTransaction.create(2L, 2000L, TransactionType.CHARGE, 2000L));
 
         // when
-        List<PointTransaction> transactions = repository.findByUserId(1L);
+        List<PointTransaction> transactions = repository.findByPointId(1L);
 
         // then
         assertThat(transactions).hasSize(2);
@@ -77,14 +77,14 @@ class InMemoryPointTransactionRepositoryTest {
     @DisplayName("사용자 ID로 거래 내역을 페이징하여 조회할 수 있다")
     void findByUserId_페이징_성공() {
         // given
-        repository.save(PointTransaction.create(1L, 1000, TransactionType.CHARGE, 1000));
-        repository.save(PointTransaction.create(1L, 500, TransactionType.USE, 500));
-        repository.save(PointTransaction.create(1L, 300, TransactionType.CHARGE, 800));
-        repository.save(PointTransaction.create(1L, 100, TransactionType.USE, 700));
+        repository.save(PointTransaction.create(1L, 1000L, TransactionType.CHARGE, 1000L));
+        repository.save(PointTransaction.create(1L, 500L, TransactionType.USE, 500L));
+        repository.save(PointTransaction.create(1L, 300L, TransactionType.CHARGE, 800L));
+        repository.save(PointTransaction.create(1L, 100L, TransactionType.USE, 700L));
 
         // when
-        List<PointTransaction> page1 = repository.findByUserId(1L, 0, 2);
-        List<PointTransaction> page2 = repository.findByUserId(1L, 2, 2);
+        List<PointTransaction> page1 = repository.findByPointId(1L, 0, 2);
+        List<PointTransaction> page2 = repository.findByPointId(1L, 2, 2);
 
         // then
         assertThat(page1).hasSize(2);
@@ -95,12 +95,12 @@ class InMemoryPointTransactionRepositoryTest {
     @DisplayName("거래 내역은 최신순으로 정렬된다")
     void findByUserId_최신순정렬() throws InterruptedException {
         // given
-        PointTransaction t1 = repository.save(PointTransaction.create(1L, 1000, TransactionType.CHARGE, 1000));
+        PointTransaction t1 = repository.save(PointTransaction.create(1L, 1000L, TransactionType.CHARGE, 1000L));
         Thread.sleep(10);  // 시간 차이를 위해
-        PointTransaction t2 = repository.save(PointTransaction.create(1L, 500, TransactionType.USE, 500));
+        PointTransaction t2 = repository.save(PointTransaction.create(1L, 500L, TransactionType.USE, 500L));
 
         // when
-        List<PointTransaction> transactions = repository.findByUserId(1L);
+        List<PointTransaction> transactions = repository.findByPointId(1L);
 
         // then
         assertThat(transactions.get(0).getId()).isEqualTo(t2.getId());  // 최신 거래가 먼저
@@ -111,7 +111,7 @@ class InMemoryPointTransactionRepositoryTest {
     @DisplayName("존재하지 않는 사용자의 거래 내역은 빈 목록이다")
     void findByUserId_없음() {
         // when
-        List<PointTransaction> transactions = repository.findByUserId(999L);
+        List<PointTransaction> transactions = repository.findByPointId(999L);
 
         // then
         assertThat(transactions).isEmpty();
@@ -121,14 +121,14 @@ class InMemoryPointTransactionRepositoryTest {
     @DisplayName("저장소를 초기화할 수 있다")
     void clear_성공() {
         // given
-        repository.save(PointTransaction.create(1L, 1000, TransactionType.CHARGE, 1000));
-        repository.save(PointTransaction.create(2L, 2000, TransactionType.CHARGE, 2000));
+        repository.save(PointTransaction.create(1L, 1000L, TransactionType.CHARGE, 1000L));
+        repository.save(PointTransaction.create(2L, 2000L, TransactionType.CHARGE, 2000L));
 
         // when
         repository.clear();
 
         // then
-        assertThat(repository.findByUserId(1L)).isEmpty();
-        assertThat(repository.findByUserId(2L)).isEmpty();
+        assertThat(repository.findByPointId(1L)).isEmpty();
+        assertThat(repository.findByPointId(2L)).isEmpty();
     }
 }
