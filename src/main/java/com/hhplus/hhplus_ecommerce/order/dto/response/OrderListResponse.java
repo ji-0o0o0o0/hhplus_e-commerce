@@ -6,23 +6,21 @@ import lombok.Getter;
 
 import java.util.List;
 
-@Getter
-@AllArgsConstructor
 @Schema(description = "주문 목록 조회 응답")
-public class OrderListResponse {
+public record OrderListResponse (
 
     @Schema(description = "주문 목록")
-    private List<OrderListDto> orders;
+     List<OrderListDto> orders,
 
     @Schema(description = "전체 주문 수", example = "10")
-    private Long totalElements;
+     Long totalElements,
 
     @Schema(description = "전체 페이지 수", example = "1")
-    private Integer totalPages;
+     Integer totalPages,
 
     @Schema(description = "현재 페이지", example = "0")
-    private Integer currentPage;
+     Integer currentPage,
 
     @Schema(description = "페이지 크기", example = "10")
-    private Integer size;
-}
+     Integer size
+){}

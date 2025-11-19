@@ -5,6 +5,7 @@ import com.hhplus.hhplus_ecommerce.point.domain.Point;
 import com.hhplus.hhplus_ecommerce.point.domain.PointTransaction;
 import com.hhplus.hhplus_ecommerce.point.repository.PointRepository;
 import com.hhplus.hhplus_ecommerce.point.repository.PointTransactionRepository;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -42,7 +43,7 @@ class PointServiceTest {
         point = Point.builder()
                 .id(1L)
                 .userId(userId)
-                .amount(10000)
+                .amount(10000L)
                 .build();
     }
 
@@ -74,8 +75,14 @@ class PointServiceTest {
         // then
         assertAll(
                 () -> assertThat(result).isNotNull(),
-                () -> assertThat(result.getAmount()).isEqualTo(0),
-                () -> assertThat(result.getUserId()).isEqualTo(userId)
+                () -> {
+                    Assertions.assertNotNull(result);
+                    assertThat(result.getAmount()).isEqualTo(0);
+                },
+                () -> {
+                    Assertions.assertNotNull(result);
+                    assertThat(result.getUserId()).isEqualTo(userId);
+                }
         );
         verify(pointRepository).save(any(Point.class));
     }
@@ -90,7 +97,7 @@ class PointServiceTest {
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        Point result = pointService.changePoint(userId, 5000);
+        Point result = pointService.changePoint(userId, 5000L);
 
         // then
         assertThat(result.getAmount()).isEqualTo(15000);
@@ -108,7 +115,7 @@ class PointServiceTest {
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        Point result = pointService.usePoint(userId, 3000);
+        Point result = pointService.usePoint(userId, 3000L);
 
         // then
         assertThat(result.getAmount()).isEqualTo(7000);
@@ -124,13 +131,13 @@ class PointServiceTest {
         given(pointRepository.save(any(Point.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        pointService.changePoint(userId, 5000);
+        Point point = pointService.changePoint(userId, 5000L);
 
         // then
         verify(pointTransactionRepository).save(argThat(transaction ->
                 transaction.getType() == TransactionType.CHARGE &&
                         transaction.getAmount() == 5000 &&
-                        transaction.getUserId().equals(userId)
+                        transaction.getPointId().equals(point.getId())
         ));
     }
 
@@ -142,13 +149,13 @@ class PointServiceTest {
         given(pointRepository.save(any(Point.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        pointService.usePoint(userId, 3000);
+        Point point = pointService.usePoint(userId, 3000L);
 
         // then
         verify(pointTransactionRepository).save(argThat(transaction ->
                 transaction.getType() == TransactionType.USE &&
                         transaction.getAmount() == 3000 &&
-                        transaction.getUserId().equals(userId)
+                        transaction.getPointId().equals(point.getId())
         ));
     }
 
@@ -156,9 +163,9 @@ class PointServiceTest {
     @DisplayName("거래 내역을 조회할 수 있다")
     void getPointTransactions_성공() {
         // given
-        PointTransaction transaction1 = PointTransaction.create(userId, 5000, TransactionType.CHARGE, 5000);
-        PointTransaction transaction2 = PointTransaction.create(userId, 2000, TransactionType.USE, 3000);
-        given(pointTransactionRepository.findByUserId(userId))
+        PointTransaction transaction1 = PointTransaction.create(userId, 5000L, TransactionType.CHARGE, 5000L);
+        PointTransaction transaction2 = PointTransaction.create(userId, 2000L, TransactionType.USE, 3000L);
+        given(pointTransactionRepository.findByPointId(userId))
                 .willReturn(List.of(transaction1, transaction2));
 
         // when

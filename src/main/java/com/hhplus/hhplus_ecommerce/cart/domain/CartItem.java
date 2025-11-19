@@ -1,31 +1,38 @@
 package com.hhplus.hhplus_ecommerce.cart.domain;
 
+import com.hhplus.hhplus_ecommerce.common.BaseTimeEntity;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
-
-
+@Entity
+@Table(name = "cart_items")
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class CartItem {
+public class CartItem extends BaseTimeEntity{
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    private Long userId;
-    private Long productId;
-    private Integer quantity;
-    private LocalDateTime createdAt;
 
-    // 장바구니 항목 생성
+    @Column(nullable = false)
+    private Long userId;
+
+    @Column(nullable = false)
+    private Long productId;
+
+    @Column(nullable = false)
+    private Integer quantity;
+
+
     public static CartItem create(Long userId, Long productId, Integer quantity) {
         return CartItem.builder()
                 .userId(userId)
                 .productId(productId)
                 .quantity(quantity)
-                .createdAt(LocalDateTime.now())
                 .build();
     }
 
@@ -37,8 +44,16 @@ public class CartItem {
         this.quantity = quantity;
     }
 
-    // 비즈니스 로직: 수량 증가
     public void increaseQuantity(Integer amount) {
         this.quantity += amount;
+    }
+
+    public void decreaseQuantity(Integer amount) {
+        this.quantity -= amount;
+    }
+
+
+    public boolean isQuantityZeroOrLess() {
+        return this.quantity <= 0;
     }
 }

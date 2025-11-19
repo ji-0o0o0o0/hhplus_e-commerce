@@ -48,7 +48,7 @@ public class TestDataInitializer {
         productRepository.save(Product.create(
                 "맥북 프로 16인치",
                 "M3 Max 칩, 36GB RAM, 1TB SSD",
-                4500000,
+                4500000L,
                 10,
                 "전자제품"
         ));
@@ -56,7 +56,7 @@ public class TestDataInitializer {
         productRepository.save(Product.create(
                 "아이폰 15 Pro",
                 "256GB, 티타늄 화이트",
-                1550000,
+                1550000L,
                 20,
                 "전자제품"
         ));
@@ -64,7 +64,7 @@ public class TestDataInitializer {
         productRepository.save(Product.create(
                 "에어팟 프로 2세대",
                 "노이즈 캔슬링, USB-C",
-                350000,
+                350000L,
                 50,
                 "전자제품"
         ));
@@ -72,7 +72,7 @@ public class TestDataInitializer {
         productRepository.save(Product.create(
                 "매직 키보드",
                 "한글 각인, 스페이스 그레이",
-                150000,
+                150000L,
                 30,
                 "액세서리"
         ));
@@ -80,7 +80,7 @@ public class TestDataInitializer {
         productRepository.save(Product.create(
                 "매직 마우스",
                 "멀티터치 표면, 충전식",
-                99000,
+                99000L,
                 40,
                 "액세서리"
         ));

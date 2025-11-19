@@ -3,27 +3,50 @@ package com.hhplus.hhplus_ecommerce.coupon.domain;
 import com.hhplus.hhplus_ecommerce.common.exception.BusinessException;
 import com.hhplus.hhplus_ecommerce.common.exception.ErrorCode;
 import com.hhplus.hhplus_ecommerce.coupon.CouponStatus;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
+import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
 
-
+@Entity
+@Table(name = "user_coupons")
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
 public class UserCoupon {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false)
     private Long userId;
+
+    @Column(nullable = false)
     private Long couponId;
+
+    @Column(nullable = false, length = 100)
     private String name;
+
+    @Column(nullable = false)
     private Integer discountRate;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
     private CouponStatus status;
+
+    @CreationTimestamp
+    @Column(nullable = false, updatable = false)
     private LocalDateTime issuedAt;
+
+    @Column
     private LocalDateTime usedAt;
+
+    @Column(nullable = false)
     private LocalDateTime expiresAt;
 
     // 쿠폰 발급
@@ -63,8 +86,14 @@ public class UserCoupon {
         this.status = CouponStatus.EXPIRED;
     }
 
+    public boolean shouldExpire() {
+        return this.status == CouponStatus.AVAILABLE &&
+                this.expiresAt != null &&
+                LocalDateTime.now().isAfter(this.expiresAt);
+    }
+
     // 할인 금액 계산
-    public int calculateDiscount(Integer orderAmount) {
+    public Long calculateDiscount(Long orderAmount) {
         return orderAmount * discountRate / 100;
     }
 }

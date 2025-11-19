@@ -1,0 +1,16 @@
+spring:
+  jpa:
+    hibernate:
+      ddl-auto: create-drop  # 테스트 시작 시 스키마 생성, 종료 시 삭제
+    show-sql: true  # SQL 로그 출력 (디버깅용)
+    properties:
+      hibernate:
+        format_sql: true  # SQL 포맷팅
+
+  flyway:
+    enabled: false  # 테스트에서는 Flyway 비활성화 (JPA가 스키마 생성)
+
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE

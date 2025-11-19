@@ -6,11 +6,9 @@ import lombok.Getter;
 
 import java.util.List;
 
-@Getter
-@AllArgsConstructor
 @Schema(description = "쿠폰 목록 조회 응답")
-public class CouponListResponse {
+public record CouponListResponse (
 
     @Schema(description = "사용자 쿠폰 목록")
-    private List<UserCouponDto> coupons;
-}
+    List<UserCouponDto> coupons
+){}

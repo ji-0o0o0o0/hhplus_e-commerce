@@ -21,21 +21,21 @@ public class CouponController implements CouponApi {
     @Override
     public ResponseEntity<ApiResponse<CouponIssueResponse>> issueCoupon(IssueCouponRequest request) {
         // Mock: 특정 쿠폰 ID는 없는 것으로 처리
-        if (request.getCouponId() == 999L) {
+        if (request.couponId() == 999L) {
             return ResponseEntity
                     .status(HttpStatus.NOT_FOUND)
                     .body(ApiResponse.error(404, "쿠폰을 찾을 수 없습니다."));
         }
 
         // Mock: 특정 쿠폰 ID는 소진된 것으로 처리
-        if (request.getCouponId() == 888L) {
+        if (request.couponId() == 888L) {
             return ResponseEntity
                     .status(HttpStatus.CONFLICT)
                     .body(ApiResponse.error(409, "쿠폰이 모두 소진되었습니다."));
         }
 
         // Mock: 특정 사용자 ID는 이미 발급받은 것으로 처리
-        if (request.getUserId() == 777L) {
+        if (request.userId() == 777L) {
             return ResponseEntity
                     .status(HttpStatus.CONFLICT)
                     .body(ApiResponse.error(409, "이미 발급받은 쿠폰입니다."));
@@ -43,8 +43,8 @@ public class CouponController implements CouponApi {
 
         CouponIssueResponse response = new CouponIssueResponse(
                 1L,
-                request.getUserId(),
-                request.getCouponId(),
+                request.userId(),
+                request.couponId(),
                 "20% 할인 쿠폰",
                 20,
                 CouponStatus.AVAILABLE

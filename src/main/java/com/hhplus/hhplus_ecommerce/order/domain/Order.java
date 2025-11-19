@@ -1,44 +1,61 @@
 package com.hhplus.hhplus_ecommerce.order.domain;
 
+import com.hhplus.hhplus_ecommerce.common.BaseTimeEntity;
 import com.hhplus.hhplus_ecommerce.common.exception.BusinessException;
 import com.hhplus.hhplus_ecommerce.common.exception.ErrorCode;
 import com.hhplus.hhplus_ecommerce.order.OrderStatus;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-
+@Entity
+@Table(name = "orders")
 @Getter
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class Order {
+public class Order extends BaseTimeEntity {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    @Column(nullable = false)
     private Long userId;
+
+    @Column
     private Long couponId;
+
+    @Transient
     @Builder.Default
     private List<OrderItem> items = new ArrayList<>();
-    private Integer totalAmount;
-    private Integer discountAmount;
-    private Integer finalAmount;
+
+    @Column(nullable = false)
+    private Long totalAmount;
+
+    @Column(nullable = false)
+    private Long discountAmount;
+
+    @Column(nullable = false)
+    private Long finalAmount;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false,length = 20)
     private OrderStatus status;
-    private LocalDateTime createdAt;
-    private LocalDateTime updatedAt;
+
+
 
     // 주문 생성
-    public static Order create(Long userId, List<OrderItem> items, Long couponId, Integer discountAmount) {
+    public static Order create(Long userId, List<OrderItem> items, Long couponId, Long discountAmount) {
         Order order = Order.builder()
                 .userId(userId)
                 .items(items != null ? new ArrayList<>(items) : new ArrayList<>())
                 .couponId(couponId)
                 .discountAmount(discountAmount != null ? discountAmount : 0)
                 .status(OrderStatus.PENDING)
-                .createdAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
                 .build();
 
         order.calculateTotalAmount();
@@ -48,7 +65,7 @@ public class Order {
     // 비즈니스 로직: 총 금액 계산
     public void calculateTotalAmount() {
         this.totalAmount = items.stream()
-                .mapToInt(OrderItem::getSubtotal)
+                .mapToLong(OrderItem::getSubtotal)
                 .sum();
         this.finalAmount = this.totalAmount - this.discountAmount;
     }
@@ -64,7 +81,6 @@ public class Order {
             throw new BusinessException(ErrorCode.ORDER_CANNOT_PAY);
         }
         this.status = OrderStatus.COMPLETED;
-        this.updatedAt = LocalDateTime.now();
     }
 
     // 비즈니스 로직: 주문 취소
@@ -73,7 +89,6 @@ public class Order {
             throw new BusinessException(ErrorCode.ORDER_CANNOT_CANCEL);
         }
         this.status = OrderStatus.CANCELLED;
-        this.updatedAt = LocalDateTime.now();
     }
 
     // 주문 항목 추가
@@ -83,7 +98,7 @@ public class Order {
     }
 
     // 할인 금액 적용
-    public void applyDiscount(Integer discountAmount) {
+    public void applyDiscount(Long discountAmount) {
         this.discountAmount = discountAmount;
         calculateTotalAmount();
     }

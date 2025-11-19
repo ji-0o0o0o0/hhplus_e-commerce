@@ -60,7 +60,7 @@ class OrderServiceTest {
         productId = 1L;
         cartItemId = 1L;
 
-        product = Product.create("노트북", "고성능", 1000000, 10, "전자제품");
+        product = Product.create("노트북", "고성능", 1000000L, 10, "전자제품");
         product = Product.builder()
                 .id(productId)
                 .name(product.getName())
@@ -195,7 +195,7 @@ class OrderServiceTest {
         Product lowStockProduct = Product.builder()
                 .id(productId)
                 .name("노트북")
-                .price(1000000)
+                .price(1000000L)
                 .stock(1)  // 재고 부족
                 .category("전자제품")
                 .build();
@@ -262,7 +262,7 @@ class OrderServiceTest {
     void cancelOrder_성공() {
         // given
         Long orderId = 1L;
-        Order order = Order.create(userId, List.of(), null, 0);
+        Order order = Order.create(userId, List.of(), null, 0L);
         order = Order.builder()
                 .id(orderId)
                 .userId(userId)

@@ -29,9 +29,8 @@ public class OrderService {
     private final UserCouponRepository userCouponRepository;
     private final LockManager lockManager;
 
-    //주문 생성
     public Order createOrder(Long userId, List<Long> cartItemIds, Long couponId) {
-        // 1. 장바구니 상품 조회
+        // 장바구니 항목 조회 및 검증
         List<CartItem> cartItems = new ArrayList<>();
         for (Long cartItemId : cartItemIds) {
             CartItem cartItem = cartItemRepository.findById(cartItemId)
@@ -47,27 +46,48 @@ public class OrderService {
             throw new BusinessException(ErrorCode.ORDER_EMPTY_ITEMS);
         }
 
-        // 2. 상품 재고 확인 및 주문 항목 생성
+        // 재고 차감 (낙관적 락 + 재시도)
         List<OrderItem> orderItems = new ArrayList<>();
         for (CartItem cartItem : cartItems) {
-            Product product = productRepository.findById(cartItem.getProductId())
-                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+            int maxRetries = 5;
+            int retryCount = 0;
+            boolean success = false;
 
-            // 재고 확인 및 차감 (주문 시 재고 예약) - 동시성 제어 적용
-            lockManager.executeWithLock("product:" + product.getId(), () -> {
-                if (product.getStock() < cartItem.getQuantity()) {
-                    throw new BusinessException(ErrorCode.PRODUCT_INSUFFICIENT_STOCK);
+            while (retryCount < maxRetries && !success) {
+                try {
+                    Product product = productRepository.findById(cartItem.getProductId())
+                            .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+
+                    // 재고 확인 및 차감
+                    if (!product.hasSufficientStock(cartItem.getQuantity())) {
+                        throw new BusinessException(ErrorCode.PRODUCT_INSUFFICIENT_STOCK);
+                    }
+
+                    product.decreaseStock(cartItem.getQuantity());
+                    productRepository.saveAndFlush(product);  // 즉시 DB 반영
+
+                    OrderItem orderItem = OrderItem.create(product, cartItem.getQuantity());
+                    orderItems.add(orderItem);
+                    success = true;
+
+                } catch (org.springframework.orm.ObjectOptimisticLockingFailureException e) {
+                    retryCount++;
+                    if (retryCount >= maxRetries) {
+                        throw new BusinessException(ErrorCode.PRODUCT_INSUFFICIENT_STOCK);
+                    }
+                    // 짧은 대기 후 재시도
+                    try {
+                        Thread.sleep(50);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new BusinessException(ErrorCode.LOCK_INTERRUPTED);
+                    }
                 }
-                product.decreaseStock(cartItem.getQuantity());
-                productRepository.save(product);
-            });
-
-            OrderItem orderItem = OrderItem.create(product, cartItem.getQuantity());
-            orderItems.add(orderItem);
+            }
         }
 
-        // 3. 쿠폰 확인 및 할인 금액 계산
-        Integer discountAmount = 0;
+        // 쿠폰 할인 계산
+        Long discountAmount = 0L;
         if (couponId != null) {
             UserCoupon userCoupon = userCouponRepository.findByUserIdAndCouponId(userId, couponId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.COUPON_NOT_FOUND));
@@ -77,13 +97,12 @@ public class OrderService {
             }
 
             // 주문 총액 계산
-            int totalAmount = orderItems.stream()
-                    .mapToInt(OrderItem::getSubtotal)
+            long totalAmount = orderItems.stream()
+                    .mapToLong(OrderItem::getSubtotal)
                     .sum();
             discountAmount = userCoupon.calculateDiscount(totalAmount);
         }
 
-        // 4. 주문 생성
         Order order = Order.create(userId, orderItems, couponId, discountAmount);
         return orderRepository.save(order);
     }
@@ -94,7 +113,6 @@ public class OrderService {
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
     }
 
-    //사용자별 주문 목록 조회
     public List<Order> getOrdersByUserId(Long userId) {
         return orderRepository.findByUserId(userId);
     }
@@ -114,17 +132,35 @@ public class OrderService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
 
-        // 주문 취소
         order.cancel();
 
-        // 재고 복구 - 동시성 제어 적용
+        // 재고 복구 (낙관적 락 + 재시도)
         for (OrderItem item : order.getItems()) {
-            lockManager.executeWithLock("product:" + item.getProductId(), () -> {
-                Product product = productRepository.findById(item.getProductId())
-                        .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
-                product.increaseStock(item.getQuantity());
-                productRepository.save(product);
-            });
+            int maxRetries = 5;
+            int retryCount = 0;
+            boolean success = false;
+
+            while (retryCount < maxRetries && !success) {
+                try {
+                    Product product = productRepository.findById(item.getProductId())
+                            .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+                    product.increaseStock(item.getQuantity());
+                    productRepository.saveAndFlush(product);
+                    success = true;
+
+                } catch (org.springframework.orm.ObjectOptimisticLockingFailureException e) {
+                    retryCount++;
+                    if (retryCount >= maxRetries) {
+                        throw new BusinessException(ErrorCode.ORDER_CANNOT_CANCEL);
+                    }
+                    try {
+                        Thread.sleep(50);
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        throw new BusinessException(ErrorCode.LOCK_INTERRUPTED);
+                    }
+                }
+            }
         }
 
         orderRepository.save(order);

@@ -36,7 +36,6 @@ public class ProductService {
         return productRepository.findTopSellingProducts(startDate, 5);
     }
 
-    //재고 차감 (동시성 제어 적용)
     public void decreaseStock(Long productId, Integer quantity) {
         lockManager.executeWithLock("product:" + productId, () -> {
             Product product = productRepository.findById(productId)
@@ -47,7 +46,6 @@ public class ProductService {
         });
     }
 
-    //재고 증가 (동시성 제어 적용)
     public void increaseStock(Long productId, Integer quantity) {
         lockManager.executeWithLock("product:" + productId, () -> {
             Product product = productRepository.findById(productId)

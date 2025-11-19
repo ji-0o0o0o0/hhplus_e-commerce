@@ -16,7 +16,7 @@ import java.util.List;
  * - 실제 장바구니 로직 처리 (현재는 Mock 데이터)
  */
 @RestController
-@RequestMapping("/api/cart")
+@RequestMapping("/api/carts")
 public class CartController implements CartApi {
 
     @Override
@@ -24,10 +24,10 @@ public class CartController implements CartApi {
         // Mock 데이터
         CartItemResponse response = new CartItemResponse(
                 1L,
-                request.getUserId(),
-                request.getProductId(),
+                request.userId(),
+                request.productId(),
                 "Macbook Pro",
-                request.getQuantity(),
+                request.quantity(),
                 2000000
         );
 

@@ -135,7 +135,7 @@ class UserCouponTest {
         UserCoupon userCoupon = UserCoupon.issue(1L, coupon);
 
         // when
-        int discount = userCoupon.calculateDiscount(100000);
+        Long discount = userCoupon.calculateDiscount(100000L);
 
         // then
         assertThat(discount).isEqualTo(10000);  // 10% 할인

@@ -5,16 +5,14 @@ import jakarta.validation.constraints.NotNull;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
-@Getter
-@NoArgsConstructor
 @Schema(description = "결제 실행 요청")
-public class ExecutePaymentRequest {
+public record ExecutePaymentRequest(
 
     @NotNull(message = "사용자 ID는 필수입니다")
     @Schema(description = "사용자 ID", example = "1", required = true)
-    private Long userId;
+    Long userId,
 
     @NotNull(message = "주문 ID는 필수입니다")
     @Schema(description = "주문 ID", example = "1", required = true)
-    private Long orderId;
-}
+    Long orderId
+){}
