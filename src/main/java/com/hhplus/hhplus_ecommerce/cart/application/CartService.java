@@ -18,7 +18,6 @@ public class CartService {
     private final CartItemRepository cartItemRepository;
     private final ProductRepository productRepository;
 
-    // 장바구니 추가
     public CartItem addCartItem(Long userId, Long productId, Integer quantity) {
         Product product = productRepository.findById(productId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
@@ -43,12 +42,10 @@ public class CartService {
         return cartItemRepository.findByUserId(userId);
     }
 
-    //장바구니 삭제 1. 특정 항목 완전 삭제 (userId 검증 추가)
     public void removeCartItem(Long userId, Long cartItemId) {
         CartItem cartItem = cartItemRepository.findById(cartItemId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND));
 
-        // 본인 확인
         if (!userId.equals(cartItem.getUserId())) {
             throw new BusinessException(ErrorCode.CART_ITEM_ACCESS_DENIED);
         }
@@ -56,7 +53,6 @@ public class CartService {
         cartItemRepository.deleteById(cartItemId);
     }
 
-    //장바구니 삭제 2. 수량만 감소 (수량 1개씩 빼기)
     public CartItem decreaseCartItemQuantity(Long userId, Long cartItemId, Integer quantity) {
         CartItem cartItem = cartItemRepository.findById(cartItemId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND));
@@ -65,7 +61,6 @@ public class CartService {
             throw new BusinessException(ErrorCode.CART_ITEM_ACCESS_DENIED);
         }
 
-        // 수량 감소
         cartItem.decreaseQuantity(quantity);
 
         if (cartItem.isQuantityZeroOrLess()) {

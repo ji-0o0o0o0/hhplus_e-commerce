@@ -36,7 +36,6 @@ public class OrderItem {
     @Column(nullable = false)
     private Long subtotal;
 
-    // 주문 항목 생성 (Product 객체로부터)
     public static OrderItem create(Product product, Integer quantity) {
         OrderItem item = OrderItem.builder()
                 .productId(product.getId())
@@ -48,7 +47,6 @@ public class OrderItem {
         return item;
     }
 
-    // 주문 항목 생성 (개별 필드로부터)
     public static OrderItem create(Long orderId, Long productId,
                                    String productName, Long unitPrice, Integer quantity) {
         OrderItem item = OrderItem.builder()

@@ -49,7 +49,6 @@ public class UserCoupon {
     @Column(nullable = false)
     private LocalDateTime expiresAt;
 
-    // 쿠폰 발급
     public static UserCoupon issue(Long userId, Coupon coupon) {
         return UserCoupon.builder()
                 .userId(userId)
@@ -63,7 +62,6 @@ public class UserCoupon {
                 .build();
     }
 
-    // 비즈니스 로직: 사용 가능 여부
     public boolean isAvailable() {
         if (this.status != CouponStatus.AVAILABLE) {
             return false;
@@ -72,7 +70,6 @@ public class UserCoupon {
         return !now.isAfter(this.expiresAt);
     }
 
-    // 비즈니스 로직: 쿠폰 사용
     public void use() {
         if (!isAvailable()) {
             throw new BusinessException(ErrorCode.COUPON_NOT_AVAILABLE);
@@ -81,7 +78,6 @@ public class UserCoupon {
         this.usedAt = LocalDateTime.now();
     }
 
-    // 비즈니스 로직: 쿠폰 만료 처리
     public void expire() {
         this.status = CouponStatus.EXPIRED;
     }
@@ -92,7 +88,6 @@ public class UserCoupon {
                 LocalDateTime.now().isAfter(this.expiresAt);
     }
 
-    // 할인 금액 계산
     public Long calculateDiscount(Long orderAmount) {
         return orderAmount * discountRate / 100;
     }

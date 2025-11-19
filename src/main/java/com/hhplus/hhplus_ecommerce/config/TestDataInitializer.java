@@ -10,10 +10,12 @@ import com.hhplus.hhplus_ecommerce.user.domain.User;
 import com.hhplus.hhplus_ecommerce.user.repository.UserRepository;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 
 import java.time.LocalDateTime;
 
+@Slf4j
 @Component
 @RequiredArgsConstructor
 public class TestDataInitializer {
@@ -40,7 +42,7 @@ public class TestDataInitializer {
         pointRepository.save(Point.create(user2.getId()));
         pointRepository.save(Point.create(user3.getId()));
 
-        System.out.println("✅ 테스트 유저 생성 완료: 김철수(ID:1), 이영희(ID:2), 박민수(ID:3)");
+        log.info("✅ 테스트 유저 생성 완료: 김철수(ID:1), 이영희(ID:2), 박민수(ID:3)");
     }
 
     //테스트 상품 생성
@@ -85,7 +87,7 @@ public class TestDataInitializer {
                 "액세서리"
         ));
 
-        System.out.println("✅ 테스트 상품 5개 생성 완료");
+        log.info("✅ 테스트 상품 5개 생성 완료");
     }
 
     // 쿠폰 생성
@@ -120,6 +122,6 @@ public class TestDataInitializer {
                 LocalDateTime.now().plusDays(60)
         ));
 
-        System.out.println("✅ 테스트 쿠폰 3개 생성 완료");
+        log.info("✅ 테스트 쿠폰 3개 생성 완료");
     }
 }
