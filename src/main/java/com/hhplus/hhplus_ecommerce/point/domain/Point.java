@@ -40,7 +40,6 @@ public class Point {
     private LocalDateTime updatedAt;
 
 
-    // 새로운 포인트 생성 (초기 잔액 0)
     public static Point create(Long userId) {
         return Point.builder()
                 .userId(userId)
@@ -49,7 +48,6 @@ public class Point {
                 .build();
     }
 
-    // 비즈니스 로직
     public void charge(Long chargeAmount) {
         if (chargeAmount <= 0) {
             throw new BusinessException(ErrorCode.POINT_INVALID_CHARGE_AMOUNT);

@@ -36,7 +36,6 @@ public class CartItem extends BaseTimeEntity{
                 .build();
     }
 
-    // 비즈니스 로직: 수량 변경
     public void updateQuantity(Integer quantity) {
         if (quantity <= 0) {
             throw new IllegalArgumentException("수량은 0보다 커야 합니다.");

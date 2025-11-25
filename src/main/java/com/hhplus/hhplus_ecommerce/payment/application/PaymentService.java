@@ -56,7 +56,6 @@ public class PaymentService {
         orderRepository.save(order);
     }
     private void validatePayment(Order order, Long userId) {
-        // 주문 검증
         if (!order.getUserId().equals(userId)) {
             throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
         }
@@ -64,14 +63,12 @@ public class PaymentService {
             throw new BusinessException(ErrorCode.ORDER_CANNOT_PAY);
         }
 
-        // 포인트 검증
         Point point = pointRepository.findByUserId(userId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.POINT_NOT_FOUND));
         if (!point.hasSufficientBalance(order.getFinalAmount())) {
             throw new BusinessException(ErrorCode.POINT_INSUFFICIENT_BALANCE);
         }
 
-        // 재고 검증
         for (OrderItem item : order.getItems()) {
             Product product = productRepository.findById(item.getProductId())
                     .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));

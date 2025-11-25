@@ -22,8 +22,6 @@ public class User extends BaseTimeEntity {
     @Column(nullable = false, length = 100)
     private String name;
 
-
-    // 사용자 생성
     public static User create(String name) {
         return User.builder()
                 .name(name)

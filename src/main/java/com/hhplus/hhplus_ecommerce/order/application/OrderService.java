@@ -30,7 +30,6 @@ public class OrderService {
     private final LockManager lockManager;
 
     public Order createOrder(Long userId, List<Long> cartItemIds, Long couponId) {
-        // 장바구니 항목 조회 및 검증
         List<CartItem> cartItems = new ArrayList<>();
         for (Long cartItemId : cartItemIds) {
             CartItem cartItem = cartItemRepository.findById(cartItemId)
@@ -58,7 +57,6 @@ public class OrderService {
                     Product product = productRepository.findById(cartItem.getProductId())
                             .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
 
-                    // 재고 확인 및 차감
                     if (!product.hasSufficientStock(cartItem.getQuantity())) {
                         throw new BusinessException(ErrorCode.PRODUCT_INSUFFICIENT_STOCK);
                     }
@@ -75,7 +73,6 @@ public class OrderService {
                     if (retryCount >= maxRetries) {
                         throw new BusinessException(ErrorCode.PRODUCT_INSUFFICIENT_STOCK);
                     }
-                    // 짧은 대기 후 재시도
                     try {
                         Thread.sleep(50);
                     } catch (InterruptedException ie) {
@@ -107,7 +104,6 @@ public class OrderService {
         return orderRepository.save(order);
     }
 
-    // 주문 조회 (단건)
     public Order getOrder(Long orderId) {
         return orderRepository.findById(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
@@ -117,17 +113,14 @@ public class OrderService {
         return orderRepository.findByUserId(userId);
     }
 
-    // 주문 상태별 조회
     public List<Order> getOrdersByStatus(OrderStatus status) {
         return orderRepository.findByStatus(status);
     }
 
-    // 모든 주문 조회
     public List<Order> getAllOrders() {
         return orderRepository.findAll();
     }
 
-    //주문 취소
     public void cancelOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));

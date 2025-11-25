@@ -48,7 +48,6 @@ public class Order extends BaseTimeEntity {
 
 
 
-    // 주문 생성
     public static Order create(Long userId, List<OrderItem> items, Long couponId, Long discountAmount) {
         Order order = Order.builder()
                 .userId(userId)
@@ -62,7 +61,6 @@ public class Order extends BaseTimeEntity {
         return order;
     }
 
-    // 비즈니스 로직: 총 금액 계산
     public void calculateTotalAmount() {
         this.totalAmount = items.stream()
                 .mapToLong(OrderItem::getSubtotal)
@@ -70,12 +68,10 @@ public class Order extends BaseTimeEntity {
         this.finalAmount = this.totalAmount - this.discountAmount;
     }
 
-    // 비즈니스 로직: 결제 가능 여부 체크
     public boolean canPay() {
         return this.status == OrderStatus.PENDING && this.finalAmount > 0;
     }
 
-    // 비즈니스 로직: 주문 완료
     public void complete() {
         if (!canPay()) {
             throw new BusinessException(ErrorCode.ORDER_CANNOT_PAY);
@@ -83,7 +79,6 @@ public class Order extends BaseTimeEntity {
         this.status = OrderStatus.COMPLETED;
     }
 
-    // 비즈니스 로직: 주문 취소
     public void cancel() {
         if (this.status == OrderStatus.COMPLETED) {
             throw new BusinessException(ErrorCode.ORDER_CANNOT_CANCEL);
@@ -91,13 +86,11 @@ public class Order extends BaseTimeEntity {
         this.status = OrderStatus.CANCELLED;
     }
 
-    // 주문 항목 추가
     public void addItem(OrderItem item) {
         this.items.add(item);
         calculateTotalAmount();
     }
 
-    // 할인 금액 적용
     public void applyDiscount(Long discountAmount) {
         this.discountAmount = discountAmount;
         calculateTotalAmount();

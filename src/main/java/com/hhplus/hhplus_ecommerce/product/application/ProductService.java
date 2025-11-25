@@ -2,7 +2,6 @@ package com.hhplus.hhplus_ecommerce.product.application;
 
 import com.hhplus.hhplus_ecommerce.common.exception.BusinessException;
 import com.hhplus.hhplus_ecommerce.common.exception.ErrorCode;
-import com.hhplus.hhplus_ecommerce.common.lock.LockManager;
 import com.hhplus.hhplus_ecommerce.product.domain.Product;
 import com.hhplus.hhplus_ecommerce.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
@@ -16,7 +15,6 @@ import java.util.List;
 public class ProductService {
 
     private final ProductRepository productRepository;
-    private final LockManager lockManager;
 
     public Product getProduct(Long productId) {
         return productRepository.findById(productId)
@@ -36,23 +34,5 @@ public class ProductService {
         return productRepository.findTopSellingProducts(startDate, 5);
     }
 
-    public void decreaseStock(Long productId, Integer quantity) {
-        lockManager.executeWithLock("product:" + productId, () -> {
-            Product product = productRepository.findById(productId)
-                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
 
-            product.decreaseStock(quantity);
-            productRepository.save(product);
-        });
-    }
-
-    public void increaseStock(Long productId, Integer quantity) {
-        lockManager.executeWithLock("product:" + productId, () -> {
-            Product product = productRepository.findById(productId)
-                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
-
-            product.increaseStock(quantity);
-            productRepository.save(product);
-        });
-    }
 }
