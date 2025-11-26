@@ -1,8 +1,6 @@
 package com.hhplus.hhplus_ecommerce.payment.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 
 import java.time.LocalDateTime;
 
@@ -16,10 +14,10 @@ public record PaymentResponse(
      Long userId,
 
     @Schema(description = "최종 결제 금액", example = "50000")
-     Integer finalAmount,
+     Long finalAmount,
 
     @Schema(description = "결제 후 포인트 잔액", example = "50000")
-     Integer pointBalanceAfter,
+     Long pointBalanceAfter,
 
     @Schema(description = "결제 시간", example = "2025-10-29T10:00:00")
      LocalDateTime paidAt

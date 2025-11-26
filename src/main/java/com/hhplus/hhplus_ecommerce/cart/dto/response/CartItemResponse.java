@@ -21,6 +21,6 @@ public record CartItemResponse(
      Integer quantity,
 
     @Schema(description = "상품 가격", example = "2000000")
-     Integer price
+     Long price
 ){
 }

@@ -7,6 +7,7 @@ import com.hhplus.hhplus_ecommerce.coupon.repository.UserCouponRepository;
 import com.hhplus.hhplus_ecommerce.order.domain.Order;
 import com.hhplus.hhplus_ecommerce.order.domain.OrderItem;
 import com.hhplus.hhplus_ecommerce.order.repository.OrderRepository;
+import com.hhplus.hhplus_ecommerce.payment.dto.response.PaymentResponse;
 import com.hhplus.hhplus_ecommerce.point.TransactionType;
 import com.hhplus.hhplus_ecommerce.point.domain.Point;
 import com.hhplus.hhplus_ecommerce.point.domain.PointTransaction;
@@ -14,8 +15,11 @@ import com.hhplus.hhplus_ecommerce.point.repository.PointRepository;
 import com.hhplus.hhplus_ecommerce.point.repository.PointTransactionRepository;
 import com.hhplus.hhplus_ecommerce.product.domain.Product;
 import com.hhplus.hhplus_ecommerce.product.repository.ProductRepository;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+
+import java.time.LocalDateTime;
 
 @Service
 @RequiredArgsConstructor
@@ -26,7 +30,35 @@ public class PaymentService {
     private final UserCouponRepository userCouponRepository;
     private final ProductRepository productRepository;
 
+    @Transactional
     public void executePayment(Long userId, Long orderId) {
+        //todo : 삭제 예정
+    }
+    private void validatePayment(Order order, Long userId) {
+        if (!order.getUserId().equals(userId)) {
+            throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
+        }
+        if (!order.canPay()) {
+            throw new BusinessException(ErrorCode.ORDER_CANNOT_PAY);
+        }
+
+        Point point = pointRepository.findByUserId(userId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.POINT_NOT_FOUND));
+        if (!point.hasSufficientBalance(order.getFinalAmount())) {
+            throw new BusinessException(ErrorCode.POINT_INSUFFICIENT_BALANCE);
+        }
+
+        for (OrderItem item : order.getItems()) {
+            Product product = productRepository.findById(item.getProductId())
+                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+            if (!product.hasSufficientStock(item.getQuantity())) {
+                throw new BusinessException(ErrorCode.PRODUCT_INSUFFICIENT_STOCK);
+            }
+        }
+    }
+
+    @Transactional
+    public PaymentResponse executePaymentWithResponse(Long userId, Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
 
@@ -54,28 +86,15 @@ public class PaymentService {
 
         order.complete();
         orderRepository.save(order);
-    }
-    private void validatePayment(Order order, Long userId) {
-        if (!order.getUserId().equals(userId)) {
-            throw new BusinessException(ErrorCode.ORDER_NOT_FOUND);
-        }
-        if (!order.canPay()) {
-            throw new BusinessException(ErrorCode.ORDER_CANNOT_PAY);
-        }
 
-        Point point = pointRepository.findByUserId(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.POINT_NOT_FOUND));
-        if (!point.hasSufficientBalance(order.getFinalAmount())) {
-            throw new BusinessException(ErrorCode.POINT_INSUFFICIENT_BALANCE);
-        }
-
-        for (OrderItem item : order.getItems()) {
-            Product product = productRepository.findById(item.getProductId())
-                    .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
-            if (!product.hasSufficientStock(item.getQuantity())) {
-                throw new BusinessException(ErrorCode.PRODUCT_INSUFFICIENT_STOCK);
-            }
-        }
+        return new PaymentResponse(
+                orderId,
+                userId,
+                order.getTotalAmount(),
+                order.getFinalAmount(),
+                LocalDateTime.now()
+        );
     }
+
 }
 

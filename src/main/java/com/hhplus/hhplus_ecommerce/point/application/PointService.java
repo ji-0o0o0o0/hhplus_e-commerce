@@ -13,7 +13,6 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -34,8 +33,8 @@ public class PointService {
 
     @Retryable(
             retryFor = {ObjectOptimisticLockingFailureException.class, OptimisticLockException.class},
-            maxAttempts = 50,
-            backoff = @Backoff(delay = 1, maxDelay = 10, random = true)
+            maxAttempts = 10,
+            backoff = @Backoff(delay = 50, maxDelay = 200, random = true)
     )
     public Point changePoint(Long userId, Long amount) {
         return pointTransactionService.executeChargeWithTransaction(userId, amount);

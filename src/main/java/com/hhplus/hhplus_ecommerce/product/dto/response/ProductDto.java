@@ -12,7 +12,7 @@ public record ProductDto (
     String name,
 
     @Schema(description = "상품 가격", example = "2000000")
-    Integer price,
+    Long price,
 
     @Schema(description = "재고 수량", example = "10")
     Integer stock,

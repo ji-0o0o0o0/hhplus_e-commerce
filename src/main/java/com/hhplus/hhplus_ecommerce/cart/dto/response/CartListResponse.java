@@ -10,5 +10,5 @@ public record CartListResponse (
          List<CartDto> cartItems,
 
         @Schema(description = "총 금액", example = "5200000")
-         Integer totalAmount
+         Long totalAmount
 ){}

@@ -42,8 +42,6 @@ class OrderServiceTest {
     @Mock
     private UserCouponRepository userCouponRepository;
 
-    @Mock
-    private com.hhplus.hhplus_ecommerce.common.lock.LockManager lockManager;
 
     @InjectMocks
     private OrderService orderService;
@@ -77,12 +75,7 @@ class OrderServiceTest {
                 .quantity(2)
                 .build();
 
-        // LockManager Mock 공통 설정 (lenient)
-        lenient().doAnswer(invocation -> {
-            Runnable action = invocation.getArgument(1);
-            action.run();
-            return null;
-        }).when(lockManager).executeWithLock(anyString(), any(Runnable.class));
+
     }
 
     @Test
@@ -92,12 +85,7 @@ class OrderServiceTest {
         given(cartItemRepository.findById(cartItemId)).willReturn(Optional.of(cartItem));
         given(productRepository.findById(productId)).willReturn(Optional.of(product));
 
-        // LockManager Mock: executeWithLock 호출 시 action 실행
-        willAnswer(invocation -> {
-            Runnable action = invocation.getArgument(1);
-            action.run();
-            return null;
-        }).given(lockManager).executeWithLock(anyString(), any(Runnable.class));
+
 
         given(productRepository.save(any(Product.class))).willReturn(product);
         given(orderRepository.save(any(Order.class))).willAnswer(invocation -> invocation.getArgument(0));
@@ -112,7 +100,7 @@ class OrderServiceTest {
                 () -> assertThat(result.getTotalAmount()).isEqualTo(2000000),
                 () -> assertThat(result.getStatus()).isEqualTo(OrderStatus.PENDING)
         );
-        verify(lockManager).executeWithLock(eq("product:" + productId), any(Runnable.class));
+
         verify(orderRepository).save(any(Order.class));
     }
 
@@ -134,12 +122,7 @@ class OrderServiceTest {
         given(cartItemRepository.findById(cartItemId)).willReturn(Optional.of(cartItem));
         given(productRepository.findById(productId)).willReturn(Optional.of(product));
 
-        // LockManager Mock
-        willAnswer(invocation -> {
-            Runnable action = invocation.getArgument(1);
-            action.run();
-            return null;
-        }).given(lockManager).executeWithLock(anyString(), any(Runnable.class));
+
 
         given(productRepository.save(any(Product.class))).willReturn(product);
         given(userCouponRepository.findByUserIdAndCouponId(userId, couponId))

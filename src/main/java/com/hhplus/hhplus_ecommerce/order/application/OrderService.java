@@ -4,16 +4,23 @@ import com.hhplus.hhplus_ecommerce.cart.domain.CartItem;
 import com.hhplus.hhplus_ecommerce.cart.repository.CartItemRepository;
 import com.hhplus.hhplus_ecommerce.common.exception.BusinessException;
 import com.hhplus.hhplus_ecommerce.common.exception.ErrorCode;
-import com.hhplus.hhplus_ecommerce.common.lock.LockManager;
 import com.hhplus.hhplus_ecommerce.coupon.domain.UserCoupon;
 import com.hhplus.hhplus_ecommerce.coupon.repository.UserCouponRepository;
 import com.hhplus.hhplus_ecommerce.order.OrderStatus;
 import com.hhplus.hhplus_ecommerce.order.domain.Order;
 import com.hhplus.hhplus_ecommerce.order.domain.OrderItem;
+import com.hhplus.hhplus_ecommerce.order.dto.response.OrderItemDto;
+import com.hhplus.hhplus_ecommerce.order.dto.response.OrderListDto;
+import com.hhplus.hhplus_ecommerce.order.dto.response.OrderListResponse;
+import com.hhplus.hhplus_ecommerce.order.dto.response.OrderResponse;
 import com.hhplus.hhplus_ecommerce.order.repository.OrderRepository;
 import com.hhplus.hhplus_ecommerce.product.domain.Product;
 import com.hhplus.hhplus_ecommerce.product.repository.ProductRepository;
+import jakarta.persistence.OptimisticLockException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.retry.annotation.Backoff;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -27,7 +34,6 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final CartItemRepository cartItemRepository;
     private final UserCouponRepository userCouponRepository;
-    private final LockManager lockManager;
 
     public Order createOrder(Long userId, List<Long> cartItemIds, Long couponId) {
         List<CartItem> cartItems = new ArrayList<>();
@@ -48,39 +54,9 @@ public class OrderService {
         // 재고 차감 (낙관적 락 + 재시도)
         List<OrderItem> orderItems = new ArrayList<>();
         for (CartItem cartItem : cartItems) {
-            int maxRetries = 5;
-            int retryCount = 0;
-            boolean success = false;
-
-            while (retryCount < maxRetries && !success) {
-                try {
-                    Product product = productRepository.findById(cartItem.getProductId())
-                            .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
-
-                    if (!product.hasSufficientStock(cartItem.getQuantity())) {
-                        throw new BusinessException(ErrorCode.PRODUCT_INSUFFICIENT_STOCK);
-                    }
-
-                    product.decreaseStock(cartItem.getQuantity());
-                    productRepository.saveAndFlush(product);  // 즉시 DB 반영
-
-                    OrderItem orderItem = OrderItem.create(product, cartItem.getQuantity());
-                    orderItems.add(orderItem);
-                    success = true;
-
-                } catch (org.springframework.orm.ObjectOptimisticLockingFailureException e) {
-                    retryCount++;
-                    if (retryCount >= maxRetries) {
-                        throw new BusinessException(ErrorCode.PRODUCT_INSUFFICIENT_STOCK);
-                    }
-                    try {
-                        Thread.sleep(50);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        throw new BusinessException(ErrorCode.LOCK_INTERRUPTED);
-                    }
-                }
-            }
+            Product product = decreaseProductStock(cartItem.getProductId(),cartItem.getQuantity());
+            OrderItem orderItem = OrderItem.create(product, cartItem.getQuantity());
+            orderItems.add(orderItem);
         }
 
         // 쿠폰 할인 계산
@@ -129,33 +105,127 @@ public class OrderService {
 
         // 재고 복구 (낙관적 락 + 재시도)
         for (OrderItem item : order.getItems()) {
-            int maxRetries = 5;
-            int retryCount = 0;
-            boolean success = false;
-
-            while (retryCount < maxRetries && !success) {
-                try {
-                    Product product = productRepository.findById(item.getProductId())
-                            .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
-                    product.increaseStock(item.getQuantity());
-                    productRepository.saveAndFlush(product);
-                    success = true;
-
-                } catch (org.springframework.orm.ObjectOptimisticLockingFailureException e) {
-                    retryCount++;
-                    if (retryCount >= maxRetries) {
-                        throw new BusinessException(ErrorCode.ORDER_CANNOT_CANCEL);
-                    }
-                    try {
-                        Thread.sleep(50);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        throw new BusinessException(ErrorCode.LOCK_INTERRUPTED);
-                    }
-                }
-            }
+            increaseProductStock(item.getProductId(), item.getQuantity());
         }
 
         orderRepository.save(order);
     }
+
+    @Retryable(
+            retryFor = {ObjectOptimisticLockingFailureException.class, OptimisticLockException.class},
+            maxAttempts = 5,
+            backoff = @Backoff(delay = 50, maxDelay = 200)
+    )
+    private Product decreaseProductStock(Long productId, int quantity) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        if (!product.hasSufficientStock(quantity)) {
+            throw new BusinessException(ErrorCode.PRODUCT_INSUFFICIENT_STOCK);
+        }
+        product.decreaseStock(quantity);
+        return  productRepository.saveAndFlush(product);
+    }
+
+    @Retryable(
+            retryFor = {ObjectOptimisticLockingFailureException.class, OptimisticLockException.class},
+            maxAttempts = 5,
+            backoff = @Backoff(delay = 50, maxDelay = 200)
+    )
+    private void increaseProductStock(Long productId, int quantity) {
+        Product product = productRepository.findById(productId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+
+        product.increaseStock(quantity);
+        productRepository.saveAndFlush(product);
+    }
+
+    public OrderResponse createOrderWithResponse(Long userId, List<Long> cartItemIds, Long couponId) {
+        Order order = createOrder(userId, cartItemIds, couponId);
+
+        List<OrderItemDto> orderItemDtos = convertToOrderItemDtos(order);
+
+        return new OrderResponse(
+                order.getId(),
+                order.getUserId(),
+                order.getTotalAmount(),
+                order.getDiscountAmount(),
+                order.getFinalAmount(),
+                order.getStatus(),
+                orderItemDtos,
+                order.getCreatedAt()
+        );
+    }
+
+    public OrderResponse createOrderFromEntireCart(Long userId, Long couponId) {
+
+        List<CartItem> cartItems = cartItemRepository.findByUserId(userId);
+
+        if (cartItems.isEmpty()) {
+            throw new BusinessException(ErrorCode.CART_EMPTY);
+        }
+        List<Long> cartItemIds = cartItems.stream()
+                .map(CartItem::getId)
+                .toList();
+
+        return createOrderWithResponse(userId, cartItemIds, couponId);
+
+    }
+
+    public OrderListResponse getOrdersByUserIdWithResponse(Long userId, Integer page, Integer size) {
+        List<Order> orders = getOrdersByUserId(userId);
+
+        List<OrderListDto> orderDtos = orders.stream()
+                .map(o -> new OrderListDto(
+                        o.getId(),
+                        o.getFinalAmount(),
+                        o.getStatus(),
+                        o.getCreatedAt()
+                ))
+                .toList();
+
+        return new OrderListResponse(
+                orderDtos,
+                (long) orders.size(),
+                (orders.size() + size - 1) / size,
+                page,
+                size
+        );
+    }
+
+    public OrderResponse getOrderDetailResponse(Long orderId) {
+        Order order = getOrder(orderId);
+
+        List<OrderItemDto> orderItemDtos = convertToOrderItemDtos(order);
+
+        return new OrderResponse(
+                order.getId(),
+                order.getUserId(),
+                order.getTotalAmount(),
+                order.getDiscountAmount(),
+                order.getFinalAmount(),
+                order.getStatus(),
+                orderItemDtos,
+                order.getCreatedAt()
+        );
+    }
+    private List<OrderItemDto> convertToOrderItemDtos(Order order) {
+        return order.getItems().stream()
+                .map(item -> {
+                    Product product = productRepository.findById(item.getProductId())
+                            .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
+
+                    return new OrderItemDto(
+                            item.getId(),
+                            item.getProductId(),
+                            product.getName(),
+                            item.getQuantity(),
+                            item.getUnitPrice(),
+                            item.getSubtotal()
+                    );
+                })
+                .toList();
+    }
+
+
 }

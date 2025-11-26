@@ -2,10 +2,12 @@ package com.hhplus.hhplus_ecommerce.coupon.application;
 
 import com.hhplus.hhplus_ecommerce.common.exception.BusinessException;
 import com.hhplus.hhplus_ecommerce.common.exception.ErrorCode;
-import com.hhplus.hhplus_ecommerce.common.lock.LockManager;
 import com.hhplus.hhplus_ecommerce.coupon.CouponStatus;
 import com.hhplus.hhplus_ecommerce.coupon.domain.Coupon;
 import com.hhplus.hhplus_ecommerce.coupon.domain.UserCoupon;
+import com.hhplus.hhplus_ecommerce.coupon.dto.response.CouponIssueResponse;
+import com.hhplus.hhplus_ecommerce.coupon.dto.response.CouponListResponse;
+import com.hhplus.hhplus_ecommerce.coupon.dto.response.UserCouponDto;
 import com.hhplus.hhplus_ecommerce.coupon.repository.CouponRepository;
 import com.hhplus.hhplus_ecommerce.coupon.repository.UserCouponRepository;
 import lombok.RequiredArgsConstructor;
@@ -22,7 +24,6 @@ import java.util.List;
 public class CouponService {
     private final CouponRepository couponRepository;
     private final UserCouponRepository userCouponRepository;
-    private final LockManager lockManager;
 
     @Transactional
     @Retryable(
@@ -85,4 +86,47 @@ public class CouponService {
         Coupon coupon = Coupon.create(name, discountRate, totalQuantity,validityDays, startDate, endDate);
         return couponRepository.save(coupon);
     }
+
+    public CouponIssueResponse issueCouponWithResponse(UserCoupon issueCoupon) {
+        Coupon coupon = getCoupon(issueCoupon.getCouponId());
+
+        return new CouponIssueResponse(
+                issueCoupon.getId(),
+                issueCoupon.getUserId(),
+                issueCoupon.getCouponId(),
+                coupon.getName(),
+                coupon.getDiscountRate(),
+                issueCoupon.getStatus(),
+                issueCoupon.getIssuedAt(),
+                issueCoupon.getExpiresAt()
+        );
+    }
+
+    public CouponListResponse getUserCouponsWithDetails(Long userId, CouponStatus status) {
+        List<UserCoupon> userCoupons;
+        if (status != null) {
+            userCoupons = userCouponRepository.findByUserIdAndStatus(userId, status);
+        } else {
+            userCoupons = getUserCoupons(userId);
+        }
+
+        List<UserCouponDto> dtos = userCoupons.stream()
+                .map(uc -> {
+                    Coupon coupon = getCoupon(uc.getCouponId());
+                    return new UserCouponDto(
+                            uc.getId(),
+                            uc.getCouponId(),
+                            coupon.getName(),
+                            coupon.getDiscountRate(),
+                            uc.getStatus(),
+                            uc.getIssuedAt(),
+                            uc.getUsedAt(),
+                            uc.getExpiresAt()
+                    );
+                })
+                .toList();
+
+        return new CouponListResponse(dtos);
+    }
+
 }

@@ -119,7 +119,7 @@ public interface CouponApi {
                                 """))
             )
     })
-    ResponseEntity<ApiResponse<CouponListResponse>> getCoupons(
+    ResponseEntity<ApiResponse<CouponListResponse>> getUserCoupons(
             @Parameter(description = "사용자 ID", example = "1", required = true)
             @RequestParam Long userId,
 

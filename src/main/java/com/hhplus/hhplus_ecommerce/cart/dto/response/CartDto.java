@@ -18,8 +18,8 @@ public record CartDto (
      Integer quantity,
 
     @Schema(description = "상품 단가", example = "2000000")
-     Integer price,
+     Long price,
 
     @Schema(description = "소계", example = "4000000")
-     Integer subtotal
+     Long subtotal
 ){}
