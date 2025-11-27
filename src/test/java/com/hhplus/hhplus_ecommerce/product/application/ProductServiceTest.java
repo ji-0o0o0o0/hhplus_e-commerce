@@ -119,13 +119,32 @@ class ProductServiceTest {
     @DisplayName("인기 상품 목록을 조회할 수 있다")
     void getTopProducts_성공() {
         // given
-        given(productStatisticsRepository.findTopSellingProductIds(any(LocalDate.class), eq(5))).willReturn(List.of());
+        Product product2 = Product.builder()
+                .id(2L)
+                .name("마우스")
+                .price(50000L)
+                .stock(20)
+                .category("전자제품")
+                .build();
+
+        Object[] productData1 = {1L, 100L}; // productId, totalSales
+        Object[] productData2 = {2L, 80L};
+
+        given(productStatisticsRepository.findTopSellingProductIds(any(LocalDate.class), eq(5)))
+                .willReturn(List.of(productData1, productData2));
+        given(productRepository.findById(1L)).willReturn(Optional.of(product));
+        given(productRepository.findById(2L)).willReturn(Optional.of(product2));
 
         // when
         PopularProductsResponse result = productService.getPopularProductsResponse();
 
         // then
-        assertThat(result).hasSameClassAs(1);
+        assertThat(result).isNotNull();
+        assertThat(result.products()).hasSize(2);
+        assertThat(result.products().get(0).id()).isEqualTo(1L);
+        assertThat(result.products().get(0).salesCount()).isEqualTo(100);
+        assertThat(result.products().get(1).id()).isEqualTo(2L);
+        assertThat(result.products().get(1).salesCount()).isEqualTo(80);
         verify(productStatisticsRepository).findTopSellingProductIds(any(LocalDate.class), eq(5));
     }
 }
