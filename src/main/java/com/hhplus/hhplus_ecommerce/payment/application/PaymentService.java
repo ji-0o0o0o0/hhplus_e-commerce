@@ -8,11 +8,8 @@ import com.hhplus.hhplus_ecommerce.order.domain.Order;
 import com.hhplus.hhplus_ecommerce.order.domain.OrderItem;
 import com.hhplus.hhplus_ecommerce.order.repository.OrderRepository;
 import com.hhplus.hhplus_ecommerce.payment.dto.response.PaymentResponse;
-import com.hhplus.hhplus_ecommerce.point.TransactionType;
+import com.hhplus.hhplus_ecommerce.point.application.PointService;
 import com.hhplus.hhplus_ecommerce.point.domain.Point;
-import com.hhplus.hhplus_ecommerce.point.domain.PointTransaction;
-import com.hhplus.hhplus_ecommerce.point.repository.PointRepository;
-import com.hhplus.hhplus_ecommerce.point.repository.PointTransactionRepository;
 import com.hhplus.hhplus_ecommerce.product.domain.Product;
 import com.hhplus.hhplus_ecommerce.product.repository.ProductRepository;
 import jakarta.transaction.Transactional;
@@ -25,10 +22,9 @@ import java.time.LocalDateTime;
 @RequiredArgsConstructor
 public class PaymentService {
     private final OrderRepository orderRepository;
-    private final PointRepository pointRepository;
-    private final PointTransactionRepository pointTransactionRepository;
     private final UserCouponRepository userCouponRepository;
     private final ProductRepository productRepository;
+    private final PointService pointService;
 
     @Transactional
     public void executePayment(Long userId, Long orderId) {
@@ -42,8 +38,7 @@ public class PaymentService {
             throw new BusinessException(ErrorCode.ORDER_CANNOT_PAY);
         }
 
-        Point point = pointRepository.findByUserId(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.POINT_NOT_FOUND));
+        Point point = pointService.getPoint(userId);
         if (!point.hasSufficientBalance(order.getFinalAmount())) {
             throw new BusinessException(ErrorCode.POINT_INSUFFICIENT_BALANCE);
         }
@@ -64,18 +59,7 @@ public class PaymentService {
 
         validatePayment(order, userId);
 
-        Point point = pointRepository.findByUserId(userId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.POINT_NOT_FOUND));
-        point.use(order.getFinalAmount());
-        Point savedPoint = pointRepository.save(point);
-
-        PointTransaction transaction = PointTransaction.create(
-                point.getId(),
-                order.getFinalAmount(),
-                TransactionType.USE,
-                savedPoint.getAmount()
-        );
-        pointTransactionRepository.save(transaction);
+        pointService.usePointWithDistributedLock(userId, order.getFinalAmount());
 
         if (order.getCouponId() != null) {
             UserCoupon userCoupon = userCouponRepository.findByUserIdAndCouponId(userId, order.getCouponId())
