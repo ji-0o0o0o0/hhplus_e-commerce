@@ -22,7 +22,7 @@ public class CouponController implements CouponApi {
 
     @Override
     public ResponseEntity<ApiResponse<CouponIssueResponse>> issueCoupon(IssueCouponRequest request) {
-        UserCoupon issueCoupon = couponService.issueCoupon(request.userId(), request.couponId());
+        UserCoupon issueCoupon = couponService.issueCouponWithDistributedLock(request.userId(), request.couponId());
         CouponIssueResponse response = couponService.issueCouponWithResponse(issueCoupon);
 
         return ResponseEntity
