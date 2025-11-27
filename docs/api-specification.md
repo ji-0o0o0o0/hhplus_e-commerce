@@ -221,7 +221,7 @@ GET /api/products?page=0&size=10&keyword=macbook
 ## 2. 장바구니 (Cart)
 
 ### 2.1 장바구니 추가
-`POST /api/cart/items`
+`POST /api/carts`
 
 #### Request Body
 | 필드 | 타입 | 필수 | 설명 |
@@ -268,7 +268,7 @@ GET /api/products?page=0&size=10&keyword=macbook
 ---
 
 ### 2.2 장바구니 삭제
-`DELETE /api/cart/items/{cartItemId}`
+`DELETE /api/carts/{cartItemId}`
 
 #### Path Parameters
 | 파라미터 | 타입 | 필수 | 설명 |
@@ -299,7 +299,7 @@ GET /api/products?page=0&size=10&keyword=macbook
 ---
 
 ### 2.3 장바구니 조회
-`GET /api/cart/items`
+`GET /api/carts`
 
 #### Query Parameters
 | 파라미터 | 타입 | 필수 | 설명 |
@@ -353,40 +353,23 @@ GET /api/products?page=0&size=10&keyword=macbook
 
 ## 3. 주문 (Order)
 
-### 3.1 주문 생성
+### 3.1 주문 생성 (선택 주문)
 `POST /api/orders`
+
+장바구니에서 선택한 상품들만 주문합니다.
 
 #### Request Body
 | 필드 | 타입 | 필수 | 설명 |
 |-----|------|------|------|
 | userId | Number | O | 사용자 ID |
-| orderType | String | O | 주문 타입 (CART, DIRECT) |
+| cartItemIds | Array | O | 주문할 장바구니 항목 ID 목록 (최소 1개) |
 | couponId | Number | X | 사용할 쿠폰 ID (선택) |
-| items | Array | X | 즉시 구매 시 상품 목록 (orderType=DIRECT 시 필수) |
-| items[].productId | Number | O | 상품 ID |
-| items[].quantity | Number | O | 수량 |
 
 ```json
 {
   "userId": 1,
-  "orderType": "CART",
+  "cartItemIds": [1, 3],
   "couponId": 1
-}
-```
-
-또는 즉시구매:
-
-```json
-{
-  "userId": 1,
-  "orderType": "DIRECT",
-  "couponId": 1,
-  "items": [
-    {
-      "productId": 1,
-      "quantity": 2
-    }
-  ]
 }
 ```
 
@@ -427,6 +410,73 @@ GET /api/products?page=0&size=10&keyword=macbook
 | 400 | 재고 부족 | `{"code": 400, "message": "재고가 부족합니다."}` |
 | 400 | 쿠폰 무효 | `{"code": 400, "message": "쿠폰이 유효하지 않습니다."}` |
 | 400 | 장바구니 비어있음 | `{"code": 400, "message": "장바구니가 비어있습니다."}` |
+| 404 | 사용자 없음 | `{"code": 404, "message": "사용자를 찾을 수 없습니다."}` |
+
+---
+
+### 3.1.5 장바구니 전체 주문
+`POST /api/orders/cart`
+
+장바구니의 **모든** 상품을 한번에 주문합니다.
+
+#### Request Body
+| 필드 | 타입 | 필수 | 설명 |
+|-----|------|------|------|
+| userId | Number | O | 사용자 ID |
+| couponId | Number | X | 사용할 쿠폰 ID (선택) |
+
+```json
+{
+  "userId": 1,
+  "couponId": 1
+}
+```
+
+#### Response
+
+**201 Created**: 주문이 성공적으로 생성됨
+
+```json
+{
+  "code": 201,
+  "message": "주문이 생성되었습니다.",
+  "data": {
+    "orderId": 1,
+    "userId": 1,
+    "totalAmount": 5200000,
+    "discountAmount": 520000,
+    "finalAmount": 4680000,
+    "status": "PENDING",
+    "orderItems": [
+      {
+        "orderItemId": 1,
+        "productId": 1,
+        "productName": "Macbook Pro",
+        "quantity": 2,
+        "unitPrice": 2000000,
+        "subtotal": 4000000
+      },
+      {
+        "orderItemId": 2,
+        "productId": 2,
+        "productName": "iPhone 12",
+        "quantity": 1,
+        "unitPrice": 1200000,
+        "subtotal": 1200000
+      }
+    ],
+    "createdAt": "2025-10-29T10:00:00"
+  }
+}
+```
+
+#### Error Response
+
+| 상태 코드 | 설명 | 응답 예시 |
+|----------|------|-----------|
+| 400 | 장바구니 비어있음 | `{"code": 400, "message": "장바구니가 비어있습니다."}` |
+| 400 | 재고 부족 | `{"code": 400, "message": "재고가 부족합니다."}` |
+| 400 | 쿠폰 무효 | `{"code": 400, "message": "쿠폰이 유효하지 않습니다."}` |
 | 404 | 사용자 없음 | `{"code": 404, "message": "사용자를 찾을 수 없습니다."}` |
 
 ---

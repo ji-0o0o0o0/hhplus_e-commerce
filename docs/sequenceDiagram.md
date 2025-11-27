@@ -14,28 +14,125 @@ sequenceDiagram
     actor Client
     participant ProductController
     participant ProductService
+    participant RedisCache
     participant ProductRepository
     participant DB
 
     Client->>ProductController: GET /products/{productId}
-    ProductController->>ProductService: getProductById(productId)
-    ProductService->>ProductRepository: findById(productId)
-    ProductRepository->>DB: SELECT * FROM products WHERE id = ?
-    DB-->>ProductRepository: Product Data
-    ProductRepository-->>ProductService: Product
-    ProductService-->>ProductController: ProductResponse
-    ProductController-->>Client: 200 OK (ProductResponse)
+    ProductController->>ProductService: getProductDetail(productId)
+
+    ProductService->>RedisCache: get("productDetail::{productId}")
+    alt Cache Hit
+        RedisCache-->>ProductService: Cached ProductDetailResponse
+        ProductService-->>ProductController: ProductDetailResponse
+        ProductController-->>Client: 200 OK (ProductDetailResponse)
+    else Cache Miss
+        RedisCache-->>ProductService: null
+        ProductService->>ProductRepository: findById(productId)
+        ProductRepository->>DB: SELECT * FROM products WHERE id = ?
+        DB-->>ProductRepository: Product Data
+        ProductRepository-->>ProductService: Product
+        ProductService->>ProductService: Convert to ProductDetailResponse
+        ProductService->>RedisCache: put("productDetail::{productId}", response, TTL=10min)
+        RedisCache-->>ProductService: Success
+        ProductService-->>ProductController: ProductDetailResponse
+        ProductController-->>Client: 200 OK (ProductDetailResponse)
+    end
 ```
 
 ### 처리 흐름
 1. 클라이언트가 상품 ID로 조회 요청
 2. Controller가 Service에 조회 요청
-3. Service가 Repository에 조회 요청
-4. Repository가 DB에서 상품 정보 조회
-5. 조회 결과를 DTO로 변환하여 응답
+3. **Service가 Redis Cache에서 먼저 조회 (Cache-Aside 패턴)**
+   - **Cache Hit**: 캐시된 데이터를 즉시 반환
+   - **Cache Miss**: DB에서 조회 후 캐시에 저장 (TTL 10분)
+4. Service가 Repository에 조회 요청 (Cache Miss 시)
+5. Repository가 DB에서 상품 정보 조회
+6. 조회 결과를 DTO로 변환하여 캐시에 저장 후 응답
+
+### 캐싱 전략
+- **캐시 키**: `productDetail::{productId}`
+- **TTL**: 10분 (재고 변경 가능성 고려)
+- **무효화**: 재고 증감 시 `@CacheEvict`로 즉시 무효화
+- **Cache Stampede 방지**: `sync = true` (동시 요청 시 첫 스레드만 DB 조회)
 
 ### 예외 처리
 - 상품이 존재하지 않는 경우: `404 Not Found`
+
+---
+
+## 1.4 인기 상품 조회
+
+### API
+`GET /api/products/popular`
+
+### 시퀀스 다이어그램
+
+```mermaid
+sequenceDiagram
+    actor Client
+    participant ProductController
+    participant ProductService
+    participant RedisCache
+    participant ProductStatisticsRepository
+    participant ProductRepository
+    participant DB
+
+    Client->>ProductController: GET /products/popular
+    ProductController->>ProductService: getPopularProductsResponse()
+
+    ProductService->>RedisCache: get("popularProducts::top5")
+    alt Cache Hit
+        RedisCache-->>ProductService: Cached PopularProductsResponse
+        ProductService-->>ProductController: PopularProductsResponse
+        ProductController-->>Client: 200 OK (PopularProductsResponse)
+    else Cache Miss
+        RedisCache-->>ProductService: null
+
+        Note over ProductService,DB: 최근 3일 판매 통계 집계
+        ProductService->>ProductStatisticsRepository: findTopSellingProductIds(startDate, limit=5)
+        ProductStatisticsRepository->>DB: SELECT productId, SUM(salesCount)<br/>FROM product_statistics<br/>WHERE statsDate >= ?<br/>GROUP BY productId<br/>ORDER BY totalSales DESC<br/>LIMIT 5
+        DB-->>ProductStatisticsRepository: List<Object[]> (productId, totalSales)
+        ProductStatisticsRepository-->>ProductService: Top 5 Product IDs with Sales
+
+        loop 각 상위 판매 상품
+            ProductService->>ProductRepository: findById(productId)
+            ProductRepository->>DB: SELECT * FROM products WHERE id = ?
+            DB-->>ProductRepository: Product Data
+            ProductRepository-->>ProductService: Product
+        end
+
+        ProductService->>ProductService: Convert to PopularProductsResponse
+        ProductService->>RedisCache: put("popularProducts::top5", response, TTL=30min)
+        RedisCache-->>ProductService: Success
+        ProductService-->>ProductController: PopularProductsResponse
+        ProductController-->>Client: 200 OK (PopularProductsResponse)
+    end
+```
+
+### 처리 흐름
+1. 클라이언트가 인기 상품 조회 요청
+2. Controller가 Service에 조회 요청
+3. **Service가 Redis Cache에서 먼저 조회 (Cache-Aside 패턴)**
+   - **Cache Hit**: 캐시된 데이터를 즉시 반환 (30분 TTL)
+   - **Cache Miss**: DB 통계 집계 후 캐시에 저장
+4. ProductStatisticsRepository에서 최근 3일간 판매량 집계 (Cache Miss 시)
+5. 상위 5개 상품 ID 조회 및 각 상품 상세 정보 조회
+6. PopularProductsResponse로 변환하여 캐시에 저장 후 응답
+
+### 캐싱 전략
+- **캐시 키**: `popularProducts::top5`
+- **TTL**: 30분 (판매 통계는 자주 변경되지 않음, 읽기 빈도 높음)
+- **무효화**: 스케줄러가 통계 업데이트 시 자동 갱신 (TTL 만료 대기)
+- **Cache Stampede 방지**: `sync = true` (동시 요청 시 첫 스레드만 DB 집계)
+
+### 성능 최적화
+- 통계 집계 쿼리는 비용이 높으므로 캐싱 필수
+- 30분 TTL로 DB 부하 대폭 감소
+- 인기 상품은 변경 빈도 낮고 조회 빈도 높음 → 캐싱 효과 극대화
+
+### 예외 처리
+- 통계 데이터 없음: 빈 배열 반환 (에러 아님)
 
 ---
 
@@ -520,6 +617,78 @@ sequenceDiagram
 - 쿠폰 없음: `404 Not Found`
 
 > **Note**: 동시성 제어(쿠폰 수량 차감 시 락 처리)는 추후 적용 예정
+
+---
+
+## 6.5 쿠폰 조회
+
+### API
+`GET /api/coupons`
+
+### 시퀀스 다이어그램
+
+```mermaid
+sequenceDiagram
+    actor Client
+    participant CouponController
+    participant CouponService
+    participant RedisCache
+    participant UserCouponRepository
+    participant DB
+
+    Client->>CouponController: GET /coupons?userId={userId}&status={status}
+    CouponController->>CouponService: getUserCouponsWithDetails(userId, status)
+
+    CouponService->>RedisCache: get("userCoupons::{userId}_{status}")
+    alt Cache Hit
+        RedisCache-->>CouponService: Cached CouponListResponse
+        CouponService-->>CouponController: CouponListResponse
+        CouponController-->>Client: 200 OK (CouponListResponse)
+    else Cache Miss
+        RedisCache-->>CouponService: null
+
+        alt status 필터 있음
+            CouponService->>UserCouponRepository: findByUserIdAndStatus(userId, status)
+        else status 필터 없음
+            CouponService->>UserCouponRepository: findByUserId(userId)
+        end
+
+        UserCouponRepository->>DB: SELECT uc.*, c.*<br/>FROM user_coupons uc<br/>LEFT JOIN coupons c ON uc.coupon_id = c.id<br/>WHERE uc.user_id = ?<br/>[AND uc.status = ?]
+        DB-->>UserCouponRepository: User Coupons with Details
+        UserCouponRepository-->>CouponService: List<UserCoupon>
+
+        CouponService->>CouponService: Convert to CouponListResponse
+        CouponService->>RedisCache: put("userCoupons::{userId}_{status}", response, TTL=5min)
+        RedisCache-->>CouponService: Success
+        CouponService-->>CouponController: CouponListResponse
+        CouponController-->>Client: 200 OK (CouponListResponse)
+    end
+```
+
+### 처리 흐름
+1. 클라이언트가 사용자 쿠폰 목록 조회 요청 (선택적 status 필터)
+2. Controller가 Service에 조회 요청
+3. **Service가 Redis Cache에서 먼저 조회 (Cache-Aside 패턴)**
+   - **Cache Hit**: 캐시된 데이터를 즉시 반환
+   - **Cache Miss**: DB에서 조회 후 캐시에 저장 (TTL 5분)
+4. UserCouponRepository에서 쿠폰 정보 조회 (Cache Miss 시)
+5. 조회 결과를 DTO로 변환하여 캐시에 저장 후 응답
+
+### 캐싱 전략
+- **캐시 키**: `userCoupons::{userId}_{status}` (예: `userCoupons::1_AVAILABLE`)
+- **TTL**: 5분 (쿠폰 발급/사용 빈도 고려)
+- **무효화**:
+  - 쿠폰 발급 시: `@CacheEvict(allEntries = true)` - 모든 사용자 캐시 무효화
+  - 쿠폰 사용 시: `@CacheEvict(allEntries = true)` - 결제 완료 시 무효화
+- **Cache Stampede 방지**: `sync = true` (동시 요청 시 첫 스레드만 DB 조회)
+
+### 성능 최적화
+- 쿠폰 조회는 자주 발생하지만 변경은 드물어 캐싱 효과 높음
+- status 필터별로 별도 캐시 키 사용 (AVAILABLE, USED, EXPIRED 등)
+
+### 예외 처리
+- 사용자 없음: `404 Not Found`
+- 권한 없음: `403 Forbidden`
 
 ---
 
