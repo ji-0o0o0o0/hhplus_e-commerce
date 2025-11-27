@@ -7,6 +7,7 @@ import com.hhplus.hhplus_ecommerce.coupon.domain.UserCoupon;
 import com.hhplus.hhplus_ecommerce.coupon.repository.CouponRepository;
 import com.hhplus.hhplus_ecommerce.coupon.repository.UserCouponRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,6 +18,7 @@ public class CouponTransactionService {
     private final UserCouponRepository userCouponRepository;
 
     @Transactional
+    @CacheEvict(value = "userCoupons", allEntries = true)
     public UserCoupon issueCouponTransaction(Long userId, Long couponId) {
         Coupon coupon = couponRepository.findById(couponId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.COUPON_NOT_FOUND));

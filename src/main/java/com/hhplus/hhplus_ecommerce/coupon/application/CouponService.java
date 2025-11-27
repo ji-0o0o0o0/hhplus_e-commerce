@@ -13,6 +13,7 @@ import com.hhplus.hhplus_ecommerce.coupon.dto.response.UserCouponDto;
 import com.hhplus.hhplus_ecommerce.coupon.repository.CouponRepository;
 import com.hhplus.hhplus_ecommerce.coupon.repository.UserCouponRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
@@ -117,6 +118,7 @@ public class CouponService {
         );
     }
 
+    @Cacheable(value = "userCoupons", key = "#userId + '_' + (#status != null ? #status : 'ALL')", sync = true)
     public CouponListResponse getUserCouponsWithDetails(Long userId, CouponStatus status) {
         List<UserCoupon> userCoupons;
         if (status != null) {

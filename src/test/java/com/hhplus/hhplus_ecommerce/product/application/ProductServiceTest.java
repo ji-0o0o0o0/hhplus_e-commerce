@@ -3,7 +3,9 @@ package com.hhplus.hhplus_ecommerce.product.application;
 import com.hhplus.hhplus_ecommerce.common.exception.BusinessException;
 import com.hhplus.hhplus_ecommerce.common.exception.ErrorCode;
 import com.hhplus.hhplus_ecommerce.product.domain.Product;
+import com.hhplus.hhplus_ecommerce.product.dto.response.PopularProductsResponse;
 import com.hhplus.hhplus_ecommerce.product.repository.ProductRepository;
+import com.hhplus.hhplus_ecommerce.product.repository.ProductStatisticsRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -12,11 +14,12 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 
-import static org.assertj.core.api.Assertions.*;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.BDDMockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -24,6 +27,9 @@ class ProductServiceTest {
 
     @Mock
     private ProductRepository productRepository;
+
+    @Mock
+    private ProductStatisticsRepository productStatisticsRepository;
 
 
     @InjectMocks
@@ -113,14 +119,13 @@ class ProductServiceTest {
     @DisplayName("인기 상품 목록을 조회할 수 있다")
     void getTopProducts_성공() {
         // given
-        given(productRepository.findTopSellingProducts(any(LocalDateTime.class), eq(5)))
-                .willReturn(List.of(product));
+        given(productStatisticsRepository.findTopSellingProductIds(any(LocalDate.class), eq(5))).willReturn(List.of());
 
         // when
-        List<Product> result = productService.getTopProducts();
+        PopularProductsResponse result = productService.getPopularProductsResponse();
 
         // then
-        assertThat(result).hasSize(1);
-        verify(productRepository).findTopSellingProducts(any(LocalDateTime.class), eq(5));
+        assertThat(result).hasSameClassAs(1);
+        verify(productStatisticsRepository).findTopSellingProductIds(any(LocalDate.class), eq(5));
     }
 }

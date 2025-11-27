@@ -14,6 +14,7 @@ import com.hhplus.hhplus_ecommerce.product.domain.Product;
 import com.hhplus.hhplus_ecommerce.product.repository.ProductRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -53,6 +54,7 @@ public class PaymentService {
     }
 
     @Transactional
+    @CacheEvict(value = "userCoupons", allEntries = true)
     public PaymentResponse executePaymentWithResponse(Long userId, Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
