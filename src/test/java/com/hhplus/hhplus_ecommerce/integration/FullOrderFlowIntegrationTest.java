@@ -71,8 +71,8 @@ public class FullOrderFlowIntegrationTest extends BaseIntegrationTest {
     @DisplayName("전체 주문 플로우 - 쿠폰 없이")
     void 전체_주문_플로우_쿠폰_없이() {
         // 1. 포인트 충전 (1회 최대 100만원이므로 2번 충전)
-        pointService.changePoint(user.getId(), 1000000L);
-        pointService.changePoint(user.getId(), 1000000L);
+        pointService.chargePoint(user.getId(), 1000000L);
+        pointService.chargePoint(user.getId(), 1000000L);
         Point point = pointRepository.findByUserId(user.getId()).orElseThrow();
         assertThat(point.getAmount()).isEqualTo(2000000L);
 
@@ -117,8 +117,8 @@ public class FullOrderFlowIntegrationTest extends BaseIntegrationTest {
     @DisplayName("전체 주문 플로우 - 쿠폰 적용")
     void 전체_주문_플로우_쿠폰_적용() {
         // 1. 포인트 충전 (1회 최대 100만원이므로 2번 충전)
-        pointService.changePoint(user.getId(), 1000000L);
-        pointService.changePoint(user.getId(), 1000000L);
+        pointService.chargePoint(user.getId(), 1000000L);
+        pointService.chargePoint(user.getId(), 1000000L);
 
         // 2. 쿠폰 생성 및 발급
         Coupon coupon = couponService.createCoupon(
@@ -176,9 +176,9 @@ public class FullOrderFlowIntegrationTest extends BaseIntegrationTest {
     @DisplayName("전체 주문 플로우 - 다중 상품 + 쿠폰 적용")
     void 전체_주문_플로우_다중_상품_쿠폰_적용() {
         // 1. 포인트 충전 (1회 최대 100만원이므로 3번 충전)
-        pointService.changePoint(user.getId(), 1000000L);
-        pointService.changePoint(user.getId(), 1000000L);
-        pointService.changePoint(user.getId(), 1000000L);
+        pointService.chargePoint(user.getId(), 1000000L);
+        pointService.chargePoint(user.getId(), 1000000L);
+        pointService.chargePoint(user.getId(), 1000000L);
 
         // 2. 쿠폰 발급
         Coupon coupon = couponService.createCoupon(

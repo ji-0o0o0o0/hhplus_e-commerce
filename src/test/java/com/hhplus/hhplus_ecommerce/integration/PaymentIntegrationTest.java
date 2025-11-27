@@ -65,7 +65,7 @@ public class PaymentIntegrationTest extends BaseIntegrationTest {
     void payment_결재정상처리(){
         //given
         //충전
-        pointService.changePoint(user.getId(),50000L);
+        pointService.chargePoint(user.getId(),50000L);
 
         //장바구니 추가
         CartItem cartItem = cartService.addCartItem(user.getId(), product.getId(),2);
@@ -100,7 +100,7 @@ public class PaymentIntegrationTest extends BaseIntegrationTest {
         //given
         // 필요: 20,000원 (10,000 * 2)
         // 충전: 15,000원 (부족)
-        pointService.changePoint(user.getId(), 15000L);
+        pointService.chargePoint(user.getId(), 15000L);
 
         CartItem cartItem = cartService.addCartItem(user.getId(), product.getId(),2);
         Order order = orderService.createOrder(user.getId(), List.of(cartItem.getId()),null);
