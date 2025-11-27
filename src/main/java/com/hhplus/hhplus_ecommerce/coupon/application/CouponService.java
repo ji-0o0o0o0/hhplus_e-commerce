@@ -2,6 +2,8 @@ package com.hhplus.hhplus_ecommerce.coupon.application;
 
 import com.hhplus.hhplus_ecommerce.common.exception.BusinessException;
 import com.hhplus.hhplus_ecommerce.common.exception.ErrorCode;
+import com.hhplus.hhplus_ecommerce.common.lock.DistributedLockManager;
+import com.hhplus.hhplus_ecommerce.common.lock.RedisLockKey;
 import com.hhplus.hhplus_ecommerce.coupon.CouponStatus;
 import com.hhplus.hhplus_ecommerce.coupon.domain.Coupon;
 import com.hhplus.hhplus_ecommerce.coupon.domain.UserCoupon;
@@ -24,7 +26,10 @@ import java.util.List;
 public class CouponService {
     private final CouponRepository couponRepository;
     private final UserCouponRepository userCouponRepository;
+    private final DistributedLockManager lockManager;
+    private final CouponTransactionService couponTransactionService;
 
+    //낙관적락(성능 비교용)
     @Transactional
     @Retryable(
             retryFor = {org.springframework.orm.ObjectOptimisticLockingFailureException.class},
@@ -54,6 +59,16 @@ public class CouponService {
         UserCoupon userCoupon = UserCoupon.issue(userId, coupon);
         return userCouponRepository.save(userCoupon);
     }
+
+
+    public UserCoupon issueCouponWithDistributedLock(Long userId, Long couponId) {
+        String lockKey = RedisLockKey.couponIssue(couponId);
+        return lockManager.executeWithLock(lockKey, 5L, 10L, () ->
+                couponTransactionService.issueCouponTransaction(userId, couponId)
+        );
+    }
+
+
 
     public List<UserCoupon> getUserCoupons(Long userId) {
         List<UserCoupon> userCoupons = userCouponRepository.findByUserId(userId);

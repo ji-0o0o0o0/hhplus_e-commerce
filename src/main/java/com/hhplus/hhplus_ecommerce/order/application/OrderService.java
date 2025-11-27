@@ -4,6 +4,8 @@ import com.hhplus.hhplus_ecommerce.cart.domain.CartItem;
 import com.hhplus.hhplus_ecommerce.cart.repository.CartItemRepository;
 import com.hhplus.hhplus_ecommerce.common.exception.BusinessException;
 import com.hhplus.hhplus_ecommerce.common.exception.ErrorCode;
+import com.hhplus.hhplus_ecommerce.common.lock.DistributedLockManager;
+import com.hhplus.hhplus_ecommerce.common.lock.RedisLockKey;
 import com.hhplus.hhplus_ecommerce.coupon.domain.UserCoupon;
 import com.hhplus.hhplus_ecommerce.coupon.repository.UserCouponRepository;
 import com.hhplus.hhplus_ecommerce.order.OrderStatus;
@@ -34,7 +36,10 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final CartItemRepository cartItemRepository;
     private final UserCouponRepository userCouponRepository;
+    private final DistributedLockManager lockManager;
+    private final OrderTransactionService  orderTransactionService;
 
+    //낙관적락을 통한 주문
     public Order createOrder(Long userId, List<Long> cartItemIds, Long couponId) {
         List<CartItem> cartItems = new ArrayList<>();
         for (Long cartItemId : cartItemIds) {
@@ -97,6 +102,7 @@ public class OrderService {
         return orderRepository.findAll();
     }
 
+    //낙관적락을 통한 주문 취소
     public void cancelOrder(Long orderId) {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
@@ -110,7 +116,67 @@ public class OrderService {
 
         orderRepository.save(order);
     }
+    //분산락을 통한 주문
+    public Order createOrderWithDistributedLock(Long userId, List<Long> cartItemIds, Long couponId) {
+        List<CartItem> cartItems = new ArrayList<>();
+        for (Long cartItemId : cartItemIds) {
+            CartItem cartItem = cartItemRepository.findById(cartItemId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.CART_ITEM_NOT_FOUND));
 
+            if (!userId.equals(cartItem.getUserId())) {
+                throw new BusinessException(ErrorCode.CART_ITEM_ACCESS_DENIED);
+            }
+            cartItems.add(cartItem);
+        }
+
+        if (cartItems.isEmpty()) {
+            throw new BusinessException(ErrorCode.ORDER_EMPTY_ITEMS);
+        }
+
+        // 재고 차감 (분산락)
+        List<OrderItem> orderItems = new ArrayList<>();
+        for (CartItem cartItem : cartItems) {
+            Product product = decreaseProductStockWithDistributedLock(cartItem.getProductId(), cartItem.getQuantity());
+            OrderItem orderItem = OrderItem.create(product, cartItem.getQuantity());
+            orderItems.add(orderItem);
+        }
+
+        Long discountAmount = 0L;
+        if (couponId != null) {
+            UserCoupon userCoupon = userCouponRepository.findByUserIdAndCouponId(userId, couponId)
+                    .orElseThrow(() -> new BusinessException(ErrorCode.COUPON_NOT_FOUND));
+
+            if (!userCoupon.isAvailable()) {
+                throw new BusinessException(ErrorCode.COUPON_NOT_AVAILABLE);
+            }
+
+            long totalAmount = orderItems.stream()
+                    .mapToLong(OrderItem::getSubtotal)
+                    .sum();
+            discountAmount = userCoupon.calculateDiscount(totalAmount);
+        }
+
+        // 4. 주문 생성 (83-84번째 줄과 동일)
+        Order order = Order.create(userId, orderItems, couponId, discountAmount);
+        return orderRepository.save(order);
+    }
+
+    //분산락 통한 주문 취소
+    public void cancelOrderWithDistributedLock(Long orderId) {
+        Order order = orderRepository.findById(orderId)
+                .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
+
+        order.cancel();
+
+        // 재고 복구 (분산락)
+        for (OrderItem item : order.getItems()) {
+            increaseProductStockWithDistributedLock(item.getProductId(), item.getQuantity());
+        }
+
+        orderRepository.save(order);
+    }
+
+    //낙관적락(성능 비교용)
     @Retryable(
             retryFor = {ObjectOptimisticLockingFailureException.class, OptimisticLockException.class},
             maxAttempts = 5,
@@ -140,8 +206,26 @@ public class OrderService {
         productRepository.saveAndFlush(product);
     }
 
+    //분산락
+    private Product decreaseProductStockWithDistributedLock(Long productId, int quantity) {
+        String lockKey = RedisLockKey.productStock(productId);
+
+        return lockManager.executeWithLock(lockKey, 5L, 10L, () ->
+                orderTransactionService.decreaseProductStockTransaction(productId, quantity)
+        );
+    }
+
+
+
+    private void increaseProductStockWithDistributedLock(Long productId, int quantity) {
+        String lockKey = RedisLockKey.productStock(productId);
+        lockManager.executeWithLock(lockKey, 5L, 10L, () ->
+                orderTransactionService.increaseProductStockTransaction(productId, quantity)
+        );
+    }
+
     public OrderResponse createOrderWithResponse(Long userId, List<Long> cartItemIds, Long couponId) {
-        Order order = createOrder(userId, cartItemIds, couponId);
+        Order order = createOrderWithDistributedLock(userId, cartItemIds, couponId);
 
         List<OrderItemDto> orderItemDtos = convertToOrderItemDtos(order);
 
