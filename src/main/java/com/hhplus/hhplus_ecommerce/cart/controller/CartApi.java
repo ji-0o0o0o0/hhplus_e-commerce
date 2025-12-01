@@ -100,8 +100,12 @@ public interface CartApi {
             )
     })
     ResponseEntity<Void> removeCartItem(
-            @Parameter(description = "장바구니 항목 ID", example = "1", required = true)
+            @Parameter(description = "사용자 ID", required = true)
+            @RequestParam Long userId,
+
+            @Parameter(description = "장바구니 항목 ID", required = true)
             @PathVariable Long cartItemId
+
     );
 
     /**

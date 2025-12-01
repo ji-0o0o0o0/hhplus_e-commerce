@@ -2,6 +2,8 @@ package com.hhplus.hhplus_ecommerce.point.application;
 
 import com.hhplus.hhplus_ecommerce.common.exception.BusinessException;
 import com.hhplus.hhplus_ecommerce.common.exception.ErrorCode;
+import com.hhplus.hhplus_ecommerce.common.lock.DistributedLockManager;
+import com.hhplus.hhplus_ecommerce.common.lock.RedisLockKey;
 import com.hhplus.hhplus_ecommerce.point.TransactionType;
 import com.hhplus.hhplus_ecommerce.point.domain.Point;
 import com.hhplus.hhplus_ecommerce.point.domain.PointTransaction;
@@ -13,7 +15,6 @@ import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -23,6 +24,7 @@ public class PointService {
     private final PointRepository pointRepository;
     private final PointTransactionRepository pointTransactionRepository;
     private final PointTransactionService pointTransactionService;
+    private final DistributedLockManager lockManager;
 
     public Point getPoint(Long userId) {
         return pointRepository.findByUserId(userId)
@@ -32,14 +34,16 @@ public class PointService {
                 });
     }
 
+    //낙관적락(성능 비교용)
     @Retryable(
             retryFor = {ObjectOptimisticLockingFailureException.class, OptimisticLockException.class},
-            maxAttempts = 50,
-            backoff = @Backoff(delay = 1, maxDelay = 10, random = true)
+            maxAttempts = 10,
+            backoff = @Backoff(delay = 50, maxDelay = 200, random = true)
     )
-    public Point changePoint(Long userId, Long amount) {
+    public Point chargePoint(Long userId, Long amount) {
         return pointTransactionService.executeChargeWithTransaction(userId, amount);
     }
+
     public Point usePoint(Long userId, Long amount) {
         Point point = getPoint(userId);
         point.use(amount);
@@ -49,6 +53,25 @@ public class PointService {
 
         return  savedPoint;
     }
+
+
+    public Point chargePointWithDistributedLock(Long userId, Long amount) {
+        String lockKey = RedisLockKey.pointTransaction(userId);
+        return lockManager.executeWithLock(lockKey, 5L, 10L, () ->
+            pointTransactionService.chargePointTransaction(userId, amount)
+        );
+    }
+
+
+
+    public Point usePointWithDistributedLock(Long userId, Long amount) {
+        String lockKey = RedisLockKey.pointTransaction(userId);
+        return lockManager.executeWithLock(lockKey, 5L, 10L, () ->
+                pointTransactionService.usePointTransaction(userId, amount)
+        );
+    }
+
+
 
     public List<PointTransaction> getPointTransactions(Long userId) {
         Point point = pointRepository.findByUserId(userId)

@@ -33,9 +33,6 @@ class CouponServiceTest {
     @Mock
     private UserCouponRepository userCouponRepository;
 
-    @Mock
-    private com.hhplus.hhplus_ecommerce.common.lock.LockManager lockManager;
-
     @InjectMocks
     private CouponService couponService;
 
@@ -59,12 +56,7 @@ class CouponServiceTest {
                 .endDate(LocalDateTime.now().plusDays(30))
                 .build();
 
-        // LockManager Mock 공통 설정: executeWithLock 호출 시 action 실행 (lenient)
-        lenient().when(lockManager.executeWithLock(anyString(), any(java.util.function.Supplier.class)))
-                .thenAnswer(invocation -> {
-                    java.util.function.Supplier<?> action = invocation.getArgument(1);
-                    return action.get();
-                });
+
     }
 
     @Test

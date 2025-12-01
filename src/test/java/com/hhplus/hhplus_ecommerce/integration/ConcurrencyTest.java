@@ -70,7 +70,7 @@ public class ConcurrencyTest extends BaseConcurrencyTest {
         for (int i = 0; i < threadCount; i++) {
             executorService.submit(() -> {
                 try {
-                    pointService.changePoint(user.getId(), chargeAmount);
+                    pointService.chargePoint(user.getId(), chargeAmount);
                     successCount.incrementAndGet();
                 } catch (Exception e) {
                     failCount.incrementAndGet();

@@ -1,8 +1,6 @@
 package com.hhplus.hhplus_ecommerce.order.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 
 @Schema(description = "주문 상품 정보")
 public record OrderItemDto (
@@ -20,8 +18,8 @@ public record OrderItemDto (
      Integer quantity,
 
     @Schema(description = "단가", example = "2000000")
-     Integer unitPrice,
+     Long unitPrice,
 
     @Schema(description = "소계", example = "2000000")
-     Integer subtotal
+     Long subtotal
 ){}

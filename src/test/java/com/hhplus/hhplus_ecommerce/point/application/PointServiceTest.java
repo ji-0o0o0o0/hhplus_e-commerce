@@ -97,7 +97,7 @@ class PointServiceTest {
                 .willAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        Point result = pointService.changePoint(userId, 5000L);
+        Point result = pointService.chargePoint(userId, 5000L);
 
         // then
         assertThat(result.getAmount()).isEqualTo(15000);
@@ -131,7 +131,7 @@ class PointServiceTest {
         given(pointRepository.save(any(Point.class))).willAnswer(invocation -> invocation.getArgument(0));
 
         // when
-        Point point = pointService.changePoint(userId, 5000L);
+        Point point = pointService.chargePoint(userId, 5000L);
 
         // then
         verify(pointTransactionRepository).save(argThat(transaction ->

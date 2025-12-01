@@ -1,45 +1,28 @@
 package com.hhplus.hhplus_ecommerce.payment.controller;
 
 import com.hhplus.hhplus_ecommerce.common.dto.ApiResponse;
+import com.hhplus.hhplus_ecommerce.payment.application.PaymentService;
 import com.hhplus.hhplus_ecommerce.payment.dto.request.ExecutePaymentRequest;
 import com.hhplus.hhplus_ecommerce.payment.dto.response.PaymentResponse;
-import org.springframework.http.HttpStatus;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalDateTime;
-
 @RestController
 @RequestMapping("/api/payments")
+@RequiredArgsConstructor
 public class PaymentController implements PaymentApi {
+
+    private final PaymentService paymentService;
 
 
     @Override
     public ResponseEntity<ApiResponse<PaymentResponse>> executePayment(ExecutePaymentRequest request) {
 
-        // Mock: 특정 주문 ID는 없는 것으로 처리
-        if (request.orderId() == 999L) {
-            return ResponseEntity
-                    .status(HttpStatus.NOT_FOUND)
-                    .body(ApiResponse.error(404, "주문을 찾을 수 없습니다."));
-        }
-
-        // Mock: 특정 사용자 ID는 잔액 부족으로 처리
-        if (request.userId() == 999L) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(ApiResponse.error(400, "잔액이 부족합니다."));
-        }
-
-        PaymentResponse response = new PaymentResponse(
-                request.orderId(),
-                request.userId(),
-                50000,
-                50000,
-                LocalDateTime.now()
-        );
+        PaymentResponse response = paymentService.executePaymentWithResponse(request.userId(),request.orderId());
         return ResponseEntity.ok(ApiResponse.success(response));
+
     }
 }
 

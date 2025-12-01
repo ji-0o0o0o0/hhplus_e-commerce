@@ -8,10 +8,8 @@ import com.hhplus.hhplus_ecommerce.order.OrderStatus;
 import com.hhplus.hhplus_ecommerce.order.domain.Order;
 import com.hhplus.hhplus_ecommerce.order.domain.OrderItem;
 import com.hhplus.hhplus_ecommerce.order.repository.OrderRepository;
+import com.hhplus.hhplus_ecommerce.point.application.PointService;
 import com.hhplus.hhplus_ecommerce.point.domain.Point;
-import com.hhplus.hhplus_ecommerce.point.domain.PointTransaction;
-import com.hhplus.hhplus_ecommerce.point.repository.PointRepository;
-import com.hhplus.hhplus_ecommerce.point.repository.PointTransactionRepository;
 import com.hhplus.hhplus_ecommerce.product.domain.Product;
 import com.hhplus.hhplus_ecommerce.product.repository.ProductRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,6 +25,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.BDDMockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -36,16 +35,13 @@ class PaymentServiceTest {
     private OrderRepository orderRepository;
 
     @Mock
-    private PointRepository pointRepository;
-
-    @Mock
-    private PointTransactionRepository pointTransactionRepository;
-
-    @Mock
     private UserCouponRepository userCouponRepository;
 
     @Mock
     private ProductRepository productRepository;
+
+    @Mock
+    private PointService pointService;
 
     @InjectMocks
     private PaymentService paymentService;
@@ -99,21 +95,17 @@ class PaymentServiceTest {
     void executePayment_성공() {
         // given
         given(orderRepository.findById(orderId)).willReturn(Optional.of(order));
-        given(pointRepository.findByUserId(userId)).willReturn(Optional.of(point));
+        given(pointService.getPoint(userId)).willReturn(point);
         given(productRepository.findById(1L)).willReturn(Optional.of(product));
-        given(pointRepository.save(any(Point.class))).willAnswer(inv -> inv.getArgument(0));
-        given(pointTransactionRepository.save(any(PointTransaction.class))).willAnswer(inv -> inv.getArgument(0));
         given(orderRepository.save(any(Order.class))).willAnswer(inv -> inv.getArgument(0));
 
         // when
-        paymentService.executePayment(userId, orderId);
+        paymentService.executePaymentWithResponse(userId, orderId);
 
         // then
-        verify(pointRepository).save(point);
-        verify(pointTransactionRepository).save(any(PointTransaction.class));
+        verify(pointService).usePointWithDistributedLock(userId, order.getFinalAmount());
         verify(orderRepository).save(order);
         assertThat(order.getStatus()).isEqualTo(OrderStatus.COMPLETED);
-        assertThat(point.getAmount()).isEqualTo(500000);  // 1500000 - 1000000
     }
 
     @Test
@@ -142,17 +134,15 @@ class PaymentServiceTest {
                 .build();
 
         given(orderRepository.findById(orderId)).willReturn(Optional.of(orderWithCoupon));
-        given(pointRepository.findByUserId(userId)).willReturn(Optional.of(point));
+        given(pointService.getPoint(userId)).willReturn(point);
         given(productRepository.findById(1L)).willReturn(Optional.of(product));
         given(userCouponRepository.findByUserIdAndCouponId(userId, couponId))
                 .willReturn(Optional.of(userCoupon));
-        given(pointRepository.save(any(Point.class))).willAnswer(inv -> inv.getArgument(0));
-        given(pointTransactionRepository.save(any(PointTransaction.class))).willAnswer(inv -> inv.getArgument(0));
         given(orderRepository.save(any(Order.class))).willAnswer(inv -> inv.getArgument(0));
         given(userCouponRepository.save(any(UserCoupon.class))).willAnswer(inv -> inv.getArgument(0));
 
         // when
-        paymentService.executePayment(userId, orderId);
+        paymentService.executePaymentWithResponse(userId, orderId);
 
         // then
         verify(userCouponRepository).save(userCoupon);
@@ -165,7 +155,7 @@ class PaymentServiceTest {
         given(orderRepository.findById(orderId)).willReturn(Optional.empty());
 
         // when & then
-        assertThatThrownBy(() -> paymentService.executePayment(userId, orderId))
+        assertThatThrownBy(() -> paymentService.executePaymentWithResponse(userId, orderId))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ORDER_NOT_FOUND);
     }
@@ -177,7 +167,7 @@ class PaymentServiceTest {
         given(orderRepository.findById(orderId)).willReturn(Optional.of(order));
 
         // when & then
-        assertThatThrownBy(() -> paymentService.executePayment(999L, orderId))
+        assertThatThrownBy(() -> paymentService.executePaymentWithResponse(999L, orderId))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ORDER_NOT_FOUND);
     }
@@ -198,7 +188,7 @@ class PaymentServiceTest {
         given(orderRepository.findById(orderId)).willReturn(Optional.of(completedOrder));
 
         // when & then
-        assertThatThrownBy(() -> paymentService.executePayment(userId, orderId))
+        assertThatThrownBy(() -> paymentService.executePaymentWithResponse(userId, orderId))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.ORDER_CANNOT_PAY);
     }
@@ -214,10 +204,10 @@ class PaymentServiceTest {
                 .build();
 
         given(orderRepository.findById(orderId)).willReturn(Optional.of(order));
-        given(pointRepository.findByUserId(userId)).willReturn(Optional.of(insufficientPoint));
+        given(pointService.getPoint(userId)).willReturn(insufficientPoint);
 
         // when & then
-        assertThatThrownBy(() -> paymentService.executePayment(userId, orderId))
+        assertThatThrownBy(() -> paymentService.executePaymentWithResponse(userId, orderId))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.POINT_INSUFFICIENT_BALANCE);
     }
@@ -235,11 +225,11 @@ class PaymentServiceTest {
                 .build();
 
         given(orderRepository.findById(orderId)).willReturn(Optional.of(order));
-        given(pointRepository.findByUserId(userId)).willReturn(Optional.of(point));
+        given(pointService.getPoint(userId)).willReturn(point);
         given(productRepository.findById(1L)).willReturn(Optional.of(lowStockProduct));
 
         // when & then
-        assertThatThrownBy(() -> paymentService.executePayment(userId, orderId))
+        assertThatThrownBy(() -> paymentService.executePaymentWithResponse(userId, orderId))
                 .isInstanceOf(BusinessException.class)
                 .hasFieldOrPropertyWithValue("errorCode", ErrorCode.PRODUCT_INSUFFICIENT_STOCK);
     }

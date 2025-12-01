@@ -61,8 +61,8 @@ public void decreaseStock(Long productId, Integer quantity) {
 | 격리 수준 | Lost Update 방지 | Dirty Read 방지 | 비고 |
 |----------|----------------|----------------|-----|
 | READ_UNCOMMITTED | ❌ | ❌ | 사용 불가 |
-| READ_COMMITTED | ❌ | ✅ | MySQL 기본값이지만 부족 |
-| REPEATABLE_READ | ⚠️ | ✅ | MySQL InnoDB 기본, 하지만 Write Skew 발생 가능 |
+| READ_COMMITTED | ❌ | ✅ | PostgreSQL 기본값 |
+| REPEATABLE_READ | ⚠️ | ✅ | MySQL InnoDB 기본값, 하지만 Write Skew 발생 가능 |
 | SERIALIZABLE | ✅ | ✅ | 성능 저하 심각 |
 
 **결론**: 격리 수준만으로는 불충분, **DB Lock이 필수**
@@ -180,15 +180,15 @@ public Order createOrder(Long userId, List<OrderItem> items, Long couponId) {
 | **충돌 처리** | 재시도 필요 | 순차 대기 |
 | **적용 적합성** | 읽기 중심, 충돌 적음 | 쓰기 중심, 충돌 빈번 |
 | **사용자 경험** | 충돌 시 재시도 요청 | 대기 후 처리 |
-| **데드락 위험** | 없음 | 있음 (여러 락 획득 시) |
+| **데드락 위험** | 낮음 (하지만 여러 엔티티 동시 업데이트 시 발생 가능) | 높음 (여러 락 획득 시) |
 
 ### 3.2 도메인별 락 전략 선정
 
 | 도메인 | 선택한 락 | 선정 이유 | 비고 |
 |--------|---------|----------|-----|
-| **포인트 충전** | 낙관적 락 | • 충돌 빈도 낮음 (사용자당 독립)<br>• 빠른 처리 우선 | 재시도 50회 |
+| **포인트 충전** | 낙관적 락 | • 충돌 빈도 낮음 (사용자당 독립)<br>• 빠른 처리 우선 | 재시도 10회 |
 | **쿠폰 발급** | 낙관적 락 | • 한시적 이벤트 (짧은 시간 고부하)<br>• 재시도로 충분히 처리 가능 | 재시도 5회 |
-| **재고 차감** | 낙관적 락 | • 상품별 독립적 처리<br>• 읽기(조회) 빈도가 쓰기보다 높음 | 재시도 10회 |
+| **재고 차감** | 낙관적 락 | • 상품별 독립적 처리<br>• 읽기(조회) 빈도가 쓰기보다 높음 | 재시도 5회 |
 | **주문 생성** | 낙관적 락 | • 재고/쿠폰과 동일한 전략 유지<br>• 일관성 유지 | 복합 트랜잭션 |
 
 **비관적 락을 선택하지 않은 이유**:
@@ -198,8 +198,14 @@ public Order createOrder(Long userId, List<OrderItem> items, Long couponId) {
 
 **낙관적 락의 장점**:
 1. **무락(lock-free) 읽기**: 조회 성능 우수
-2. **데드락 없음**: Version 체크만으로 충돌 감지
+2. **데드락 가능성 낮음**: Version 체크로 충돌 감지하지만, 여러 엔티티를 하나의 트랜잭션에서 업데이트하는 경우 UPDATE 순서에 따라 데드락 발생 가능
 3. **확장성**: 트래픽 증가에 유연하게 대응
+
+**낙관적 락의 데드락 발생 조건**:
+- 낙관적 락도 version 업데이트 시 UPDATE 쿼리를 실행하며, 이때 배타락(쓰기락)을 사용함
+- 트랜잭션 A: Product1 UPDATE → Product2 UPDATE
+- 트랜잭션 B: Product2 UPDATE → Product1 UPDATE
+- 위와 같이 UPDATE 순서가 다르면 데드락 발생 가능
 
 ---
 
@@ -217,7 +223,8 @@ public Order createOrder(Long userId, List<OrderItem> items, Long couponId) {
 **2. 성능 요구사항**
 ```
 - 목표 TPS: 1000 이상
-- 응답시간: P95 < 500ms
+- 응답시간: P95 < 500ms (목표)
+    - 실제 측정은 STEP12에서 진행 예정
 - 가용성: 99.9% 이상
 ```
 → 비관적 락의 대기 시간은 이 목표를 달성하기 어려움
@@ -342,8 +349,10 @@ public void decreaseStock(Long productId, Integer quantity) {
 ```
 
 **재시도 전략**:
-- maxAttempts: 10회 (일반 상품 동시성 수준)
-- backoff: 50-200ms 랜덤 (짧은 간격으로 빠른 재시도)
+- maxAttempts: 5회
+    - 이유: 쿠폰 소진 시 재시도 무의미
+    - 5회 실패 = 높은 확률로 쿠폰 소진 상태
+    - 사용자 대기시간 최소화 (약 250ms)
 
 ---
 
@@ -381,7 +390,7 @@ public UserCoupon issueCoupon(Long userId, Long couponId) {
     Coupon coupon = couponRepository.findById(couponId)
         .orElseThrow(() -> new BusinessException(ErrorCode.COUPON_NOT_FOUND));
 
-    // 중복 발급 확인
+    // 중복 발급 확인 (조회 시점)
     userCouponRepository.findByUserIdAndCouponId(userId, couponId)
         .ifPresent(uc -> {
             throw new BusinessException(ErrorCode.COUPON_ALREADY_ISSUED);
@@ -395,13 +404,22 @@ public UserCoupon issueCoupon(Long userId, Long couponId) {
     couponRepository.save(coupon);
 
     UserCoupon userCoupon = UserCoupon.issue(userId, coupon);
+    // ⚠️ 중복 발급 방지는 save 시점에도 적용됨
+    // unique index (user_id, coupon_id)에 의해 동시 요청 시 중복 저장 방지
     return userCouponRepository.save(userCoupon);
 }
 ```
+**중복 발급 방지 2단계**:
+1. 조회 시점: `findByUserIdAndCouponId()` 확인
+2. 저장 시점: DB unique constraint
+    - 동시 요청이 1단계를 통과해도
+    - 2단계에서 DataIntegrityViolationException 발생
+    - → 재시도 시 1단계에서 차단
 
 **재시도 전략**:
-- maxAttempts: 5회 (쿠폰은 소진되면 빠른 실패가 나음)
+- maxAttempts: 5회 (충돌 발생 시 최대 5회까지 재시도, 이후 실패 처리)
 - backoff: 50ms 고정 (예측 가능한 재시도)
+- 쿠폰 재고 소진 여부는 재시도 횟수와 무관하며, canIssue() 검증으로 확인됨
 
 ---
 
@@ -434,8 +452,8 @@ public class Point {
 ```java
 @Retryable(
     retryFor = {ObjectOptimisticLockingFailureException.class, OptimisticLockException.class},
-    maxAttempts = 50,
-    backoff = @Backoff(delay = 1, maxDelay = 10, random = true)
+    maxAttempts = 10,
+    backoff = @Backoff(delay = 50, maxDelay = 200, random = true)
 )
 @Transactional
 public Point chargePoint(Long userId, Long amount) {
@@ -459,8 +477,8 @@ public Point chargePoint(Long userId, Long amount) {
 ```java
 @Retryable(
     retryFor = {ObjectOptimisticLockingFailureException.class, OptimisticLockException.class},
-    maxAttempts = 50,
-    backoff = @Backoff(delay = 1, maxDelay = 10, random = true)
+    maxAttempts = 10,
+    backoff = @Backoff(delay = 50, maxDelay = 200, random = true)
 )
 @Transactional
 public Point usePoint(Long userId, Long amount) {
@@ -480,8 +498,10 @@ public Point usePoint(Long userId, Long amount) {
 ```
 
 **재시도 전략**:
-- maxAttempts: 50회 (포인트는 반드시 처리되어야 함)
-- backoff: 1-10ms 랜덤 (매우 짧은 간격으로 빠른 재시도)
+- maxAttempts: 10회 (사용자별 독립적 처리로 충돌 빈도 낮음)
+- backoff: 50-200ms 랜덤 (충돌 회피 및 응답시간 고려)
+- 50회는 과도함: 그 정도로 많은 충돌이 예상되면 낙관적 락보다 비관적 락 고려 필요
+- 재시도가 많을수록 커넥션 점유 시간 증가 → 성능 악화 가능
 
 ---
 
@@ -561,12 +581,12 @@ class ConcurrencyTest {
 
 ### 5.2 기대 효과
 
-| 항목 | Before | After | 개선율 |
-|-----|--------|-------|-------|
-| **데이터 정합성** | 동시성 문제 발생 | 100% 보장 | ✅ |
-| **코드 복잡도** | 수동 락 관리 | 선언적 처리 | -60% |
-| **재시도 로직** | 각 Service 중복 | Spring Retry로 통일 | -70% |
-| **테스트 가능성** | 어려움 | Testcontainers로 검증 | ✅ |
+| 항목 | Before | After | 개선 효과     |
+|-----|--------|-------|-----------|
+| **데이터 정합성** | 동시성 문제 발생 | 낙관적 락으로 개선 | 높은 정합성 유지 |
+| **코드 복잡도** | 수동 락 관리 | 선언적 처리 (약 60% 감소) | ✅         |
+| **재시도 로직** | 각 Service 중복 구현 | Spring Retry로 통일 (약 70% 감소) | ✅         |
+| **테스트 가능성** | 동시성 테스트 어려움 | Testcontainers로 실제 DB 환경 검증 | ✅         |
 
 ### 5.3 향후 고려 사항
 

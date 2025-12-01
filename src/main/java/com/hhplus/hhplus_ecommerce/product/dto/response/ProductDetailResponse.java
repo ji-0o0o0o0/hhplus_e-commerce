@@ -1,8 +1,6 @@
 package com.hhplus.hhplus_ecommerce.product.dto.response;
 
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 
 @Schema(description = "상품 상세 조회 응답")
 public record ProductDetailResponse (
@@ -17,7 +15,7 @@ public record ProductDetailResponse (
     String description,
 
     @Schema(description = "상품 가격", example = "2000000")
-    Integer price,
+    Long price,
 
     @Schema(description = "재고 수량", example = "10")
     Integer stock,

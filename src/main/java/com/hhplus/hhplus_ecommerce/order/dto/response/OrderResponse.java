@@ -2,8 +2,6 @@ package com.hhplus.hhplus_ecommerce.order.dto.response;
 
 import com.hhplus.hhplus_ecommerce.order.OrderStatus;
 import io.swagger.v3.oas.annotations.media.Schema;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -18,13 +16,13 @@ public record OrderResponse (
      Long userId,
 
     @Schema(description = "총 금액", example = "55000")
-     Integer totalAmount,
+     Long totalAmount,
 
     @Schema(description = "할인 금액", example = "5000")
-     Integer discountAmount,
+     Long discountAmount,
 
     @Schema(description = "최종 금액", example = "50000")
-     Integer finalAmount,
+     Long finalAmount,
 
     @Schema(description = "주문 상태 (PENDING, COMPLETED, CANCELLED)", example = "PENDING")
      OrderStatus status,

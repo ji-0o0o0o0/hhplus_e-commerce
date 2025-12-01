@@ -24,8 +24,26 @@ services:
       timeout: 20s
       retries: 10
 
+  redis:
+    image: redis:7-alpine
+    container_name: hhplus-ecommerce-redis
+    restart: always
+    ports:
+      - "6379:6379"
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - ecommerce-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      timeout: 3s
+      retries: 10
+
 volumes:
   mysql-data:
+    driver: local
+  redis-data:
     driver: local
 
 networks:
