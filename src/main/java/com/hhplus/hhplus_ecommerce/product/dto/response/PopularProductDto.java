@@ -17,5 +17,12 @@ public record PopularProductDto (
     String category,
 
     @Schema(description = "판매 수량", example = "150")
-    Integer salesCount
-){}
+    Long salesCount,
+
+    @Schema(description = "판매 순위")
+     Long rank
+){
+    public PopularProductDto(Long productId, String name, Long price, String category, Long totalSales) {
+        this(productId, name, price, category, totalSales,null);
+    }
+}

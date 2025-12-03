@@ -77,10 +77,9 @@ CREATE TABLE cart_items (
     product_id BIGINT NOT NULL COMMENT '상품 ID',
     quantity INT NOT NULL COMMENT '수량',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성 시간',
-    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정 시간'
+    updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정 시간',
 
     CONSTRAINT chk_cart_items_quantity CHECK (quantity > 0),
-
     INDEX idx_cart_items_user (user_id),
     INDEX idx_cart_items_product (product_id),
     UNIQUE INDEX uniq_cart_items_user_product (user_id, product_id)
@@ -103,9 +102,6 @@ CREATE TABLE coupons (
     updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '수정 시간',
 
     CONSTRAINT chk_coupons_discount_rate CHECK (discount_rate BETWEEN 1 AND 100),
-    CONSTRAINT chk_coupons_issued_quantity CHECK (issued_quantity <= total_quantity),
-    CONSTRAINT chk_coupons_dates CHECK (end_date > start_date),
-
     INDEX idx_coupons_dates (start_date, end_date)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='쿠폰';
 
@@ -158,7 +154,7 @@ CREATE TABLE order_items (
     product_name VARCHAR(200) NOT NULL COMMENT '상품명 (스냅샷)',
     unit_price BIGINT NOT NULL COMMENT '단가 (원 단위, 스냅샷)',
     quantity INT NOT NULL COMMENT '수량',
-    subtotal INT NOT NULL COMMENT '소계 (원 단위)',
+    subtotal BIGINT NOT NULL COMMENT '소계 (원 단위)',
 
     INDEX idx_order_items_order (order_id),
     INDEX idx_order_items_product (product_id)
@@ -176,10 +172,9 @@ CREATE TABLE data_transmissions (
     error_message TEXT COMMENT '실패 사유',
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '생성 시간',
     sent_at DATETIME COMMENT '전송 완료 시간',
-    last_error_at DATETIME COMMENT '마지막 실패 시간'
+    last_error_at DATETIME COMMENT '마지막 실패 시간',
 
     CONSTRAINT chk_data_trans_attempts CHECK (attempts >= 0),
-
     INDEX idx_data_trans_order (order_id),
     INDEX idx_data_trans_status_created (status, created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='외부 데이터 전송 (Outbox 패턴)';
