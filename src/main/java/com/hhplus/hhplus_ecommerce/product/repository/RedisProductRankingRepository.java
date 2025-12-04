@@ -1,6 +1,7 @@
 package com.hhplus.hhplus_ecommerce.product.repository;
 
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.redis.core.RedisCallback;
 import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
@@ -13,7 +14,6 @@ import java.util.stream.Collectors;
 @Repository
 @RequiredArgsConstructor
 public class RedisProductRankingRepository implements ProductRankingRepository {
-
 
     private final RedisTemplate<String, String> redisTemplate;
     private static final String RANKING_KEY = "product:ranking";
@@ -54,12 +54,27 @@ public class RedisProductRankingRepository implements ProductRankingRepository {
 
     @Override
     public Map<Long, Long> getSalesCountBulk(List<Long> productIds) {
-        Map<Long, Long> result = new HashMap<>();
+        if (productIds == null || productIds.isEmpty()) {
+            return new HashMap<>();
+        }
 
-        for (Long productId : productIds) {
-            String member = createMember(productId);
-            Double score = redisTemplate.opsForZSet().score(RANKING_KEY, member);
-            result.put(productId, score != null ? score.longValue() : 0L);
+        // Pipeline으로 한 번에 조회
+        List<Object> results = redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+            for (Long productId : productIds) {
+                String member = createMember(productId);
+                connection.zSetCommands().zScore(
+                        RANKING_KEY.getBytes(),
+                        member.getBytes()
+                );
+            }
+            return null;  // Pipeline은 null 반환 필수
+        });
+
+        // 결과 매핑
+        Map<Long, Long> result = new HashMap<>();
+        for (int i = 0; i < productIds.size(); i++) {
+            Double score = (Double) results.get(i);
+            result.put(productIds.get(i), score != null ? score.longValue() : 0L);
         }
 
         return result;
@@ -67,12 +82,27 @@ public class RedisProductRankingRepository implements ProductRankingRepository {
 
     @Override
     public Map<Long, Long> getRankBulk(List<Long> productIds) {
-        Map<Long, Long> result = new HashMap<>();
+        if (productIds == null || productIds.isEmpty()) {
+            return new HashMap<>();
+        }
 
-        for (Long productId : productIds) {
-            String member = createMember(productId);
-            Long rank = redisTemplate.opsForZSet().reverseRank(RANKING_KEY, member);
-            result.put(productId, rank != null ? rank + 1 : null);
+        // Pipeline으로 한 번에 조회
+        List<Object> results = redisTemplate.executePipelined((RedisCallback<Object>) connection -> {
+            for (Long productId : productIds) {
+                String member = createMember(productId);
+                connection.zSetCommands().zRevRank(
+                        RANKING_KEY.getBytes(),
+                        member.getBytes()
+                );
+            }
+            return null;  // Pipeline은 null 반환 필수
+        });
+
+        // 결과 매핑
+        Map<Long, Long> result = new HashMap<>();
+        for (int i = 0; i < productIds.size(); i++) {
+            Long rank = (Long) results.get(i);
+            result.put(productIds.get(i), rank != null ? rank + 1 : null);
         }
 
         return result;
