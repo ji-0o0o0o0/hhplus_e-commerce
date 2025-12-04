@@ -713,7 +713,27 @@ protected static final MySQLContainer<?> MYSQL_CONTAINER =
 
 ### 아쉬운 점
 
-#### 1. Redis 데이터 만료(TTL) 미구현
+#### 1. Redis 데이터 만료(TTL) 부분 구현
+**구현 완료:**
+```java
+// RedisCouponRepository.java:139-148
+public void setExpire(Long couponId, Duration ttl) {
+    String stockKey = COUPON_STOCK_PREFIX + couponId;
+    String issuedKey = COUPON_ISSUED_PREFIX + couponId;
+    String queueKey = COUPON_QUEUE_PREFIX + couponId;
+
+    redisTemplate.expire(stockKey, ttl);
+    redisTemplate.expire(issuedKey, ttl);
+    redisTemplate.expire(queueKey, ttl);
+}
+```
+
+**남은 문제:**
+- 키가 없을 때 expire() 설정 실패 (issued, queue 키는 나중에 생성됨)
+- 메모리 누수 가능성 존재
+- 향후 개선: 키 생성 시마다 TTL 설정 or 빈 키 미리 생성
+
+**랭킹 TTL은 미구현:**
 ```java
 // TODO: 랭킹 데이터 TTL 설정
 redisTemplate.expire(RANKING_KEY, Duration.ofDays(7));
@@ -777,11 +797,11 @@ public void warmUpCache() {
 ## 결론
 
 ### 성과
-✅ Redis Sorted Set 기반 실시간 랭킹 시스템 구축
-✅ Redis Atomic Operation 기반 선착순 쿠폰 발급 (Lock 불필요)
-✅ **Pipeline 적용으로 Round Trip Time 93% 개선 (15회 → 1회)**
-✅ **비동기 대기열 시스템으로 응답 시간 90% 감소, TPS 10배 향상**
-✅ 성능 개선: 응답시간 95% 개선, TPS 5배 향상 (동기 방식 대비)
+✅ Redis Sorted Set 기반 실시간 랭킹 시스템 구축<br>
+✅ Redis Atomic Operation 기반 선착순 쿠폰 발급 (Lock 불필요)<br>
+✅ **Pipeline 적용으로 Round Trip Time 93% 개선 (15회 → 1회)**<br>
+✅ **비동기 대기열 시스템으로 응답 시간 90% 감소, TPS 10배 향상**<br>
+✅ 성능 개선: 응답시간 95% 개선, TPS 5배 향상 (동기 방식 대비)<br>
 ✅ 동시성 테스트 통과 (200명 동시 요청)
 
 ### 핵심 학습
