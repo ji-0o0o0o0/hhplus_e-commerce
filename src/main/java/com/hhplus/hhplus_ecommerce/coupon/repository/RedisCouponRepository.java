@@ -137,6 +137,14 @@ public class RedisCouponRepository {
     }
 
     public void setExpire(Long couponId, Duration ttl) {
+        String stockKey = COUPON_STOCK_PREFIX + couponId;
+        String issuedKey = COUPON_ISSUED_PREFIX + couponId;
+        String queueKey = COUPON_QUEUE_PREFIX + couponId;
+
+        redisTemplate.expire(stockKey, ttl);
+        redisTemplate.expire(issuedKey, ttl);
+        redisTemplate.expire(queueKey, ttl);
+
     }
 
     //쿠폰 발급 요청 DTO
