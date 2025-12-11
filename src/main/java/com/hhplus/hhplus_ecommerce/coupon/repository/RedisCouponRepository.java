@@ -24,34 +24,11 @@ public class RedisCouponRepository {
     private final RedisTemplate<String, String> redisTemplate;
     private final ObjectMapper objectMapper;
 
-    private static final String COUPON_STOCK_PREFIX = "coupon:stock:";
     private static final String COUPON_ISSUED_PREFIX = "coupon:issued:";
     private static final String COUPON_QUEUE_PREFIX = "coupon:queue:";
     private static final String COUPON_VALID_PREFIX = "coupon:valid:";
     
-    public void initializeStock(Long couponId, int stock) {
-        String key = COUPON_STOCK_PREFIX + couponId;
-        redisTemplate.opsForValue().set(key, String.valueOf(stock));
-    }
 
-    public Long decrementStock(Long couponId) {
-        String key = COUPON_STOCK_PREFIX + couponId;
-        return redisTemplate.opsForValue().decrement(key);
-    }
-
- 
-    public Long incrementStock(Long couponId) {
-        String key = COUPON_STOCK_PREFIX + couponId;
-        return redisTemplate.opsForValue().increment(key);
-    }
-
-  
-    public Long getStock(Long couponId) {
-        String key = COUPON_STOCK_PREFIX + couponId;
-        String value = redisTemplate.opsForValue().get(key);
-        return value != null ? Long.parseLong(value) : 0L;
-    }
-    
     public Boolean addIssuedUser(Long couponId, Long userId) {
         String key = COUPON_ISSUED_PREFIX + couponId;
         return redisTemplate.opsForSet().add(key, userId.toString()) > 0;
@@ -73,7 +50,6 @@ public class RedisCouponRepository {
     }
 
     public void clear(Long couponId) {
-        redisTemplate.delete(COUPON_STOCK_PREFIX + couponId);
         redisTemplate.delete(COUPON_ISSUED_PREFIX + couponId);
         redisTemplate.delete(COUPON_QUEUE_PREFIX + couponId);
     }
@@ -139,19 +115,20 @@ public class RedisCouponRepository {
     }
 
     public void setExpire(Long couponId, Duration ttl) {
-        String stockKey = COUPON_STOCK_PREFIX + couponId;
         String issuedKey = COUPON_ISSUED_PREFIX + couponId;
         String queueKey = COUPON_QUEUE_PREFIX + couponId;
+        String validKey = COUPON_VALID_PREFIX + couponId;
 
-        redisTemplate.expire(stockKey, ttl);
         redisTemplate.expire(issuedKey, ttl);
         redisTemplate.expire(queueKey, ttl);
+        redisTemplate.expire(validKey, ttl);
 
     }
-    public void setCouponValidity(Long couponId, LocalDateTime startDate, LocalDateTime endDate, Duration ttl) {
+    public void setCouponValidity(Long couponId, LocalDateTime startDate, LocalDateTime endDate, Integer totalQuantity,Duration ttl) {
         String key = COUPON_VALID_PREFIX + couponId;
         redisTemplate.opsForHash().put(key,"startDate",startDate.toString());
         redisTemplate.opsForHash().put(key,"endDate",endDate.toString());
+        redisTemplate.opsForHash().put(key,"totalQuantity",totalQuantity.toString());
         redisTemplate.expire(key,ttl);
     }
     //쿠폰 유효성 검사(Redis)
@@ -170,6 +147,12 @@ public class RedisCouponRepository {
 
         return !now.isBefore(startDate) && !now.isAfter(endDate);
     }
+    public Integer getTotalQuantity(Long couponId) {
+        String key = COUPON_VALID_PREFIX + couponId;
+        String totalQuantityStr = (String) redisTemplate.opsForHash().get(key, "totalQuantity");
+        return totalQuantityStr != null ? Integer.parseInt(totalQuantityStr) : null;
+    }
+
 
     public record CouponIssueRequest(Long userId, Long couponId) {
     }
