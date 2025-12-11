@@ -7,6 +7,7 @@ import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Repository;
 
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -26,6 +27,7 @@ public class RedisCouponRepository {
     private static final String COUPON_STOCK_PREFIX = "coupon:stock:";
     private static final String COUPON_ISSUED_PREFIX = "coupon:issued:";
     private static final String COUPON_QUEUE_PREFIX = "coupon:queue:";
+    private static final String COUPON_VALID_PREFIX = "coupon:valid:";
     
     public void initializeStock(Long couponId, int stock) {
         String key = COUPON_STOCK_PREFIX + couponId;
@@ -146,8 +148,29 @@ public class RedisCouponRepository {
         redisTemplate.expire(queueKey, ttl);
 
     }
+    public void setCouponValidity(Long couponId, LocalDateTime startDate, LocalDateTime endDate, Duration ttl) {
+        String key = COUPON_VALID_PREFIX + couponId;
+        redisTemplate.opsForHash().put(key,"startDate",startDate.toString());
+        redisTemplate.opsForHash().put(key,"endDate",endDate.toString());
+        redisTemplate.expire(key,ttl);
+    }
+    //쿠폰 유효성 검사(Redis)
+    public boolean isCouponValid(Long couponId) {
+        String key = COUPON_VALID_PREFIX + couponId;
+        String startDateStr = (String) redisTemplate.opsForHash().get(key,"startDate");
+        String endDateStr = (String) redisTemplate.opsForHash().get(key,"endDate");
 
-    //쿠폰 발급 요청 DTO
+        if (startDateStr == null || endDateStr == null) {
+            return false;
+        }
+
+        LocalDateTime startDate = LocalDateTime.parse(startDateStr);
+        LocalDateTime endDate = LocalDateTime.parse(endDateStr);
+        LocalDateTime now = LocalDateTime.now();
+
+        return !now.isBefore(startDate) && !now.isAfter(endDate);
+    }
+
     public record CouponIssueRequest(Long userId, Long couponId) {
     }
 }

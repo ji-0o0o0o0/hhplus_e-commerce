@@ -94,6 +94,9 @@ public class CouponRedisService {
         Duration ttl = Duration.between(LocalDateTime.now(), coupon.getEndDate());
         redisCouponRepository.setExpire(couponId, ttl);
 
+        redisCouponRepository.setCouponValidity(couponId, coupon.getStartDate(), coupon.getEndDate(), ttl);
+
+
         log.info("[Redis 재고 초기화] couponId={}, stock={}, TTL={}일",
                 couponId, availableStock, ttl.toDays());
 
@@ -119,23 +122,20 @@ public class CouponRedisService {
     public void requestCouponAsync(Long userId, Long couponId) {
         log.info("[비동기 쿠폰 발급 요청] userId={}, couponId={}", userId, couponId);
 
-        // 1. 쿠폰 존재 여부 확인
-        Coupon coupon = couponRepository.findById(couponId)
-                .orElseThrow(() -> new BusinessException(ErrorCode.COUPON_NOT_FOUND));
-
-        // 2. 쿠폰 유효성 확인
-        if (!coupon.isValid()) {
+        // 1. 쿠폰 유효성 확인 (Redis)
+        if (!redisCouponRepository.isCouponValid(couponId)) {
             throw new BusinessException(ErrorCode.COUPON_NOT_AVAILABLE);
         }
 
-        // 3. 중복 발급 확인 (Redis Set - Atomic)
+
+        // 2. 중복 발급 확인 (Redis Set - Atomic)
         Boolean isNew = redisCouponRepository.addIssuedUser(couponId, userId);
         if (!isNew) {
             log.warn("[중복 발급 시도] userId={}, couponId={}", userId, couponId);
             throw new BusinessException(ErrorCode.COUPON_ALREADY_ISSUED);
         }
 
-        // 4. 재고 확인 (빠른 실패)
+        // 3. 재고 확인 (빠른 실패)
         Long currentStock = redisCouponRepository.getStock(couponId);
         if (currentStock <= 0) {
             redisCouponRepository.removeIssuedUser(couponId, userId);
