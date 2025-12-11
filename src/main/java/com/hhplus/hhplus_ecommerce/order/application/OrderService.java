@@ -252,7 +252,11 @@ public class OrderService {
                 .map(CartItem::getId)
                 .toList();
 
-        return createOrderWithResponse(userId, cartItemIds, couponId);
+        OrderResponse orderResponse = createOrderWithResponse(userId, cartItemIds, couponId);
+
+        cartItemRepository.deleteAllByUserId(userId);
+
+        return orderResponse;
 
     }
 

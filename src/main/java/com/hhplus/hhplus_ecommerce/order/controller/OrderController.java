@@ -10,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -34,7 +35,7 @@ public class OrderController implements OrderApi {
     }
 
     @PostMapping("/cart")
-    public ResponseEntity<ApiResponse<OrderResponse>> createOrderFromCart(CreateOrderFromCartRequest request) {
+    public ResponseEntity<ApiResponse<OrderResponse>> createOrderFromCart(@RequestBody CreateOrderFromCartRequest request) {
         OrderResponse response = orderService.createOrderFromEntireCart(
                 request.userId(),
                 request.couponId()
