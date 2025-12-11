@@ -4,6 +4,7 @@ import com.hhplus.hhplus_ecommerce.common.exception.BusinessException;
 import com.hhplus.hhplus_ecommerce.common.exception.ErrorCode;
 import com.hhplus.hhplus_ecommerce.product.domain.Product;
 import com.hhplus.hhplus_ecommerce.product.dto.response.*;
+import com.hhplus.hhplus_ecommerce.product.repository.ProductRankingRepository;
 import com.hhplus.hhplus_ecommerce.product.repository.ProductRepository;
 import com.hhplus.hhplus_ecommerce.product.repository.ProductStatisticsRepository;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,8 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -20,6 +23,7 @@ public class ProductService {
 
     private final ProductRepository productRepository;
     private final ProductStatisticsRepository productStatisticsRepository;
+    private final ProductRankingRepository productRankingRepository;
 
     public Product getProduct(Long productId) {
         return productRepository.findById(productId)
@@ -71,7 +75,7 @@ public class ProductService {
     }
 
     @Cacheable(value = "popularProducts", key = "'top5'", sync = true)
-    public PopularProductsResponse getPopularProductsResponse() {
+    public PopularProductsResponse getPopularProductsResponseWithDB() {
         LocalDate startDate = LocalDate.now().minusDays(3);
         List<Object[]> topSellingData = productStatisticsRepository.findTopSellingProductIds(startDate, 5);
 
@@ -88,13 +92,42 @@ public class ProductService {
                     product.getName(),
                     product.getPrice(),
                     product.getCategory(),
-                    totalSales.intValue()
+                    totalSales
             ));
         }
 
         return new PopularProductsResponse(popularProducts);
     }
+    public PopularProductsResponse getPopularProductsResponse() {
+        List<Long> topProductIds = productRankingRepository.getTopProductIds(5);
+        if (topProductIds.isEmpty()) {
+            return new PopularProductsResponse(List.of());
+        }
 
+        List<Product> products = productRepository.findAllById(topProductIds);
+        Map<Long, Long> salesCountMap = productRankingRepository.getSalesCountBulk(topProductIds);
+        Map<Long, Long> rankMap = productRankingRepository.getRankBulk(topProductIds);
 
+        Map<Long, Product> productMap = products.stream()
+                .collect(Collectors.toMap(Product::getId, p -> p));
 
+        List<PopularProductDto> productDtos = topProductIds.stream()
+                .map(productId -> {
+                    Product product = productMap.get(productId);
+                    if (product == null) {
+                        throw new BusinessException(ErrorCode.PRODUCT_NOT_FOUND);
+                    }
+
+                    return new PopularProductDto(
+                            product.getId(),
+                            product.getName(),
+                            product.getPrice(),
+                            product.getCategory(),
+                            salesCountMap.get(productId),
+                            rankMap.get(productId)
+                    );
+                }).toList();
+
+        return new PopularProductsResponse(productDtos);
+    }
 }

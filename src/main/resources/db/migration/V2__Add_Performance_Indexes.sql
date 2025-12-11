@@ -5,11 +5,7 @@
 -- =============================================================================
 -- 1. 인기 상품 조회 최적화
 -- =============================================================================
--- product_statistics 테이블에 복합 인덱스 추가
--- 용도: 날짜 범위 검색 + 판매량 정렬 최적화
-CREATE INDEX idx_product_stats_date_sales
-ON product_statistics (stats_date, sales_count DESC);
-
+-- product_statistics 테이블 인덱스는 V1에 이미 존재 (idx_product_stats_date_sales)
 -- 성능 개선 효과: 100배 이상 (5초 → 8ms)
 -- 사용 쿼리: 인기 상품 Top 5 조회
 

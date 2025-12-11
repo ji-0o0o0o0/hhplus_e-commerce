@@ -29,6 +29,7 @@ public enum ErrorCode {
     COUPON_ALREADY_ISSUED(409, "이미 발급받은 쿠폰입니다"),
     COUPON_SOLD_OUT(409, "쿠폰이 모두 소진되었습니다"),
     COUPON_NOT_AVAILABLE(400, "사용할 수 없는 쿠폰입니다"),
+    COUPON_ISSUE_FAILED(500, "쿠폰 발급 중 오류가 발생했습니다"),
 
     // 사용자
     USER_NOT_FOUND(404, "사용자를 찾을 수 없습니다"),
