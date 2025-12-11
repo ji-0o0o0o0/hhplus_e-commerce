@@ -154,6 +154,6 @@ public class RedisCouponRepository {
     }
 
 
-    public record CouponIssueRequest(Long userId, Long couponId) {
+    public record CouponIssueRequest(Long userId, Long couponId,int retryCount) {
     }
 }

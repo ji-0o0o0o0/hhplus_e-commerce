@@ -29,6 +29,8 @@ public class CouponRedisService {
     private final CouponRepository couponRepository;
     private final CouponTransactionService couponTransactionService;
 
+    private static final int MAX_RETRY_COUNT = 3;
+
 
     public UserCoupon issueCouponWithRedis(Long userId, Long couponId) {
         log.info("[Redis 쿠폰 발급 시작] userId={}, couponId={}", userId, couponId);
@@ -127,7 +129,7 @@ public class CouponRedisService {
 
 
         // 5. 대기열에 추가 (비동기 처리 대상)
-        CouponIssueRequest request = new CouponIssueRequest(userId, couponId);
+        CouponIssueRequest request = new CouponIssueRequest(userId, couponId, 0);
         redisCouponRepository.addToQueue(couponId, request);
         log.info("[대기열 추가 성공] userId={}, couponId={}, queueSize={}",
                 userId, couponId, redisCouponRepository.getQueueSize(couponId));
@@ -156,10 +158,20 @@ public class CouponRedisService {
                 log.info("[쿠폰 발급 성공] userId={}, couponId={}", request.userId(), couponId);
 
             } catch (Exception e) {
-                // 실패 시 롤백
-                redisCouponRepository.removeIssuedUser(couponId, request.userId());
+                if(request.retryCount()<MAX_RETRY_COUNT){
+                    CouponIssueRequest retryRequest = new CouponIssueRequest(
+                            request.userId(),
+                            request.couponId(),
+                            request.retryCount()+1
+                    );
+                    redisCouponRepository.addToQueue(couponId, retryRequest);
+                    log.warn("[재시도 예약] userId={}, retryCount={}", request.userId(), request.retryCount()+1);
+
+                }else {
+                    redisCouponRepository.removeIssuedUser(couponId, request.userId());
+                    log.warn("[최대 재시도 초과] userId={}, couponId={}", request.userId(), couponId);
+                }
                 failCount++;
-                log.warn("[쿠폰 발급 실패] userId={}, couponId={}", request.userId(), couponId, e);
             }
         }
 
