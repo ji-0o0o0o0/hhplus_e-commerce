@@ -29,9 +29,18 @@ public class RedisCouponRepository {
     private static final String COUPON_VALID_PREFIX = "coupon:valid:";
     
 
-    public Boolean addIssuedUser(Long couponId, Long userId) {
+    public Boolean addIssuedUser(Long couponId, Long userId, Duration ttl) {
         String key = COUPON_ISSUED_PREFIX + couponId;
-        return redisTemplate.opsForSet().add(key, userId.toString()) > 0;
+        boolean result =redisTemplate.opsForSet().add(key, userId.toString()) > 0;
+        if(result) {
+            if (ttl == null) {
+                ttl = getTTLFromValidity(couponId);
+            }
+            if (ttl != null) {
+                redisTemplate.expire(key, ttl);
+            }
+        }
+        return result;
     }
 
     public Boolean removeIssuedUser(Long couponId, Long userId) {
@@ -61,7 +70,20 @@ public class RedisCouponRepository {
         String key = COUPON_QUEUE_PREFIX + couponId;
         try {
             String json = objectMapper.writeValueAsString(request);
+
+            // 키가 처음 생성되는지 확인
+            Long size = redisTemplate.opsForList().size(key);
+            boolean isNewKey = (size == null || size == 0);
+
             redisTemplate.opsForList().rightPush(key, json);
+
+            if (isNewKey) {
+                Duration ttl = getTTLFromValidity(couponId);
+                if (ttl != null) {
+                    redisTemplate.expire(key, ttl);
+                }
+            }
+
         } catch (JsonProcessingException e) {
             throw new RuntimeException("Failed to serialize coupon issue request", e);
         }
@@ -151,6 +173,16 @@ public class RedisCouponRepository {
         String key = COUPON_VALID_PREFIX + couponId;
         String totalQuantityStr = (String) redisTemplate.opsForHash().get(key, "totalQuantity");
         return totalQuantityStr != null ? Integer.parseInt(totalQuantityStr) : null;
+    }
+
+    private Duration getTTLFromValidity(Long couponId) {
+        String key = COUPON_VALID_PREFIX + couponId;
+        String endDateStr = (String) redisTemplate.opsForHash().get(key, "endDate");
+        if (endDateStr == null) {
+            return null;
+        }
+        LocalDateTime endDate = LocalDateTime.parse(endDateStr);
+        return Duration.between(LocalDateTime.now(), endDate);
     }
 
 

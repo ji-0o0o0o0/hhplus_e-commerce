@@ -45,7 +45,7 @@ public class CouponRedisService {
         }
 
         // 3. 중복 발급 확인 (Redis Set - Atomic)
-        Boolean isNew = redisCouponRepository.addIssuedUser(couponId, userId);
+        Boolean isNew = redisCouponRepository.addIssuedUser(couponId, userId,null);
         if (!isNew) {
             log.warn("[중복 발급 시도] userId={}, couponId={}", userId, couponId);
             throw new BusinessException(ErrorCode.COUPON_ALREADY_ISSUED);
@@ -108,7 +108,7 @@ public class CouponRedisService {
 
 
         // 2. 중복 발급 확인 (Redis Set - Atomic)
-        Boolean isNew = redisCouponRepository.addIssuedUser(couponId, userId);
+        Boolean isNew = redisCouponRepository.addIssuedUser(couponId, userId,null);
         if (!isNew) {
             log.warn("[중복 발급 시도] userId={}, couponId={}", userId, couponId);
             throw new BusinessException(ErrorCode.COUPON_ALREADY_ISSUED);
