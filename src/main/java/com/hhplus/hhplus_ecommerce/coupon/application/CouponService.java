@@ -29,6 +29,7 @@ public class CouponService {
     private final UserCouponRepository userCouponRepository;
     private final DistributedLockManager lockManager;
     private final CouponTransactionService couponTransactionService;
+    private final CouponRedisService couponRedisService;
 
     //낙관적락(성능 비교용)
     @Transactional
@@ -100,7 +101,9 @@ public class CouponService {
     public Coupon createCoupon(String name, Integer discountRate, Integer totalQuantity,Integer validityDays,
                                LocalDateTime startDate, LocalDateTime endDate) {
         Coupon coupon = Coupon.create(name, discountRate, totalQuantity,validityDays, startDate, endDate);
-        return couponRepository.save(coupon);
+        Coupon savedCoupon = couponRepository.save(coupon);
+        couponRedisService.initializeCouponStock(savedCoupon.getId());
+        return savedCoupon;
     }
 
     public CouponIssueResponse issueCouponWithResponse(UserCoupon issueCoupon) {
