@@ -542,7 +542,9 @@ Saga = Local Transaction 1 → Local Transaction 2 → ... → Local Transaction
                             ✅ 최종 완료
 ```
 
-**실패 및 보상 흐름 (보상 트랜잭션)**
+**실패 및 보상 흐름 (MSA 전환 후 - 보상 트랜잭션)**
+
+> ⚠️ **주의**: 아래 흐름은 **MSA 전환 후 설계**입니다. 현재 모놀리식 코드에서는 PaymentService가 실패 시 `BusinessException`을 던져 `@Transactional`이 자동 롤백합니다. PaymentFailedEvent를 발행하지 않습니다. (Section 5.2 "현재 코드 vs MSA 전환 후 비교" 참조)
 
 ```
 사용자 → Order Service
@@ -697,14 +699,59 @@ public void handleStockDecreaseFailed(StockDecreaseFailedEvent event) {
 
 보상:
 [3] 재고 복구 ← [2] 쿠폰 복구 ← [1] 주문 취소
+```
 
-코드:
-// Payment Service에서 실패 이벤트 발행
+**현재 코드 (모놀리식) vs MSA 전환 후 비교**
+
+```java
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// 현재 코드 (모놀리식 - 단일 트랜잭션)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+@Transactional  // ← 모든 작업이 하나의 트랜잭션
+public PaymentResponse executePaymentWithResponse(Long userId, Long orderId) {
+    Order order = orderRepository.findById(orderId)...;
+
+    validatePayment(order, userId);
+
+    // 포인트 차감
+    pointService.usePointWithDistributedLock(userId, order.getFinalAmount());
+    // ❌ 실패 시: BusinessException 발생 → 전체 롤백
+    // ✅ 이벤트 발행 불필요! @Transactional이 자동 롤백
+
+    // 쿠폰 사용
+    if (order.getCouponId() != null) {
+        UserCoupon userCoupon = ...;
+        userCoupon.use();
+        userCouponRepository.save(userCoupon);
+    }
+
+    // 주문 완료
+    order.complete();
+    orderRepository.save(order);
+
+    // ✅ 성공 시에만 이벤트 발행
+    publishPaymentCompletedEvent(order);
+
+    return new PaymentResponse(...);
+    // 예외 발생 시 모든 작업 자동 롤백 (재고, 쿠폰, 주문 모두)
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// MSA 전환 후 (분산 트랜잭션 - 보상 트랜잭션 필요)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Payment Service
 @Transactional
 public void processPayment(OrderCreatedEvent event) {
     try {
+        // 포인트 차감 (Payment Service의 로컬 트랜잭션)
         pointService.usePoint(event.userId(), event.finalAmount());
+
+        // ✅ 성공 시: PaymentCompletedEvent 발행
+        PaymentCompletedEvent successEvent = new PaymentCompletedEvent(...);
+        eventPublisher.publishEvent(successEvent);
+
     } catch (InsufficientBalanceException e) {
+        // ❌ 실패 시: PaymentFailedEvent 발행 (보상 트랜잭션 트리거)
         PaymentFailedEvent failedEvent = new PaymentFailedEvent(
             event.orderId(),
             event.userId(),
@@ -713,7 +760,11 @@ public void processPayment(OrderCreatedEvent event) {
             event.couponId()
         );
         eventPublisher.publishEvent(failedEvent);
+
+        log.warn("[결제 실패] 포인트 부족 - OrderId: {}, UserId: {}",
+            event.orderId(), event.userId());
     }
+    // ⚠️ 예외를 던지지 않음! 이벤트로만 실패 통지
 }
 
 // Product Service: 재고 복구
