@@ -3,7 +3,6 @@ package com.hhplus.hhplus_ecommerce.order.application;
 import com.hhplus.hhplus_ecommerce.common.exception.BusinessException;
 import com.hhplus.hhplus_ecommerce.common.exception.ErrorCode;
 import com.hhplus.hhplus_ecommerce.product.domain.Product;
-import com.hhplus.hhplus_ecommerce.product.repository.ProductRankingRepository;
 import com.hhplus.hhplus_ecommerce.product.repository.ProductRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.cache.annotation.CacheEvict;
@@ -14,7 +13,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RequiredArgsConstructor
 public class OrderTransactionService {
     private final ProductRepository productRepository;
-    private final ProductRankingRepository productRankingRepository;
 
     @Transactional
     @CacheEvict(value = "productDetail", key = "#productId")
@@ -28,7 +26,7 @@ public class OrderTransactionService {
         product.decreaseStock(quantity);
         Product savedProduct = productRepository.save(product);
 
-        productRankingRepository.incrementSales(productId, quantity);
+       
 
         return savedProduct;
     }
