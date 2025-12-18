@@ -33,6 +33,11 @@ public class Order extends BaseTimeEntity {
     @Builder.Default
     private List<OrderItem> items = new ArrayList<>();
 
+    // items를 외부에서 설정할 수 있도록 setter 추가 (DB 조회 후 설정용)
+    public void setItems(List<OrderItem> items) {
+        this.items = items != null ? new ArrayList<>(items) : new ArrayList<>();
+    }
+
     @Column(nullable = false)
     private Long totalAmount;
 

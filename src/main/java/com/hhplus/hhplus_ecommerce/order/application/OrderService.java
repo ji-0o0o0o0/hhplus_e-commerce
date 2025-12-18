@@ -19,6 +19,7 @@ import com.hhplus.hhplus_ecommerce.order.repository.OrderRepository;
 import com.hhplus.hhplus_ecommerce.product.domain.Product;
 import com.hhplus.hhplus_ecommerce.product.repository.ProductRepository;
 import jakarta.persistence.OptimisticLockException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.retry.annotation.Backoff;
@@ -241,6 +242,7 @@ public class OrderService {
         );
     }
 
+    @Transactional
     public OrderResponse createOrderFromEntireCart(Long userId, Long couponId) {
 
         List<CartItem> cartItems = cartItemRepository.findByUserId(userId);

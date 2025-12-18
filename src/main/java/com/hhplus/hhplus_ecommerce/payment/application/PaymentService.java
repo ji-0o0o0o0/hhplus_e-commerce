@@ -7,6 +7,7 @@ import com.hhplus.hhplus_ecommerce.coupon.domain.UserCoupon;
 import com.hhplus.hhplus_ecommerce.coupon.repository.UserCouponRepository;
 import com.hhplus.hhplus_ecommerce.order.domain.Order;
 import com.hhplus.hhplus_ecommerce.order.domain.OrderItem;
+import com.hhplus.hhplus_ecommerce.order.repository.OrderItemRepository;
 import com.hhplus.hhplus_ecommerce.order.repository.OrderRepository;
 import com.hhplus.hhplus_ecommerce.payment.dto.response.PaymentResponse;
 import com.hhplus.hhplus_ecommerce.point.application.PointService;
@@ -26,6 +27,7 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class PaymentService {
     private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
     private final UserCouponRepository userCouponRepository;
     private final ProductRepository productRepository;
     private final PointService pointService;
@@ -63,6 +65,10 @@ public class PaymentService {
         Order order = orderRepository.findById(orderId)
                 .orElseThrow(() -> new BusinessException(ErrorCode.ORDER_NOT_FOUND));
 
+        // DB에서 주문 아이템 조회하여 Order에 설정 (Order.items는 @Transient)
+        var items = orderItemRepository.findByOrderId(orderId);
+        order.setItems(items);
+
         validatePayment(order, userId);
 
         pointService.usePointWithDistributedLock(userId, order.getFinalAmount());
@@ -91,12 +97,15 @@ public class PaymentService {
 
     /**
      * 결제 완료 이벤트 발행
-     * - 데이터 플랫폼 전송
-     * - 인기 상품 집계
+     * - 데이터 플랫폼 전송 (Kafka) - orderId만 전송, Consumer에서 조회
+     * - 인기 상품 집계 (Redis) - items 사용
      */
     private void publishPaymentCompletedEvent(Order order) {
+        // DB에서 주문 아이템 조회 (Order.items는 @Transient)
+        var items = orderItemRepository.findByOrderId(order.getId());
+
         // 상품 정보를 포함한 주문 아이템 리스트 생성
-        var orderItems = order.getItems().stream()
+        var orderItems = items.stream()
                 .map(item -> {
                     Product product = productRepository.findById(item.getProductId())
                             .orElseThrow(() -> new BusinessException(ErrorCode.PRODUCT_NOT_FOUND));
