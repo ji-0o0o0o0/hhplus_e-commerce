@@ -19,4 +19,11 @@ public final class KafkaTopics {
      * - userId를 키로 사용하여 같은 사용자의 결제는 순서 보장
      */
     public static final String PAYMENT_COMPLETED = "payment-completed";
+
+    /**
+     * 쿠폰 발급 요청 토픽
+     * - 파티션 6개 (병렬 처리)
+     * - couponId를 키로 사용하여 같은 쿠폰의 발급 요청은 순서 보장
+     */
+    public static final String COUPON_ISSUE_REQUEST = "coupon-issue-request";
 }

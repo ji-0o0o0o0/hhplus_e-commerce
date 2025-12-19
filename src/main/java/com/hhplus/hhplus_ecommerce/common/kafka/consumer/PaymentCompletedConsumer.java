@@ -6,7 +6,6 @@ import com.hhplus.hhplus_ecommerce.coupon.domain.Coupon;
 import com.hhplus.hhplus_ecommerce.coupon.repository.CouponRepository;
 import com.hhplus.hhplus_ecommerce.external.DataPlatformClient;
 import com.hhplus.hhplus_ecommerce.external.dto.OrderDataDto;
-import com.hhplus.hhplus_ecommerce.order.domain.OrderItem;
 import com.hhplus.hhplus_ecommerce.order.repository.OrderItemRepository;
 import com.hhplus.hhplus_ecommerce.product.domain.Product;
 import com.hhplus.hhplus_ecommerce.product.repository.ProductRepository;
@@ -105,7 +104,7 @@ public class PaymentCompletedConsumer {
 
         } catch (Exception e) {
             // 처리 실패 시 커밋하지 않음 → 재처리됨
-            log.error("[Kafka Consumer] 결제 완료 메시지 처리 실패 - Partition: {}, Offset: {}, OrderId: {}, Error: {}",
+            log.warn("[Kafka Consumer] 결제 완료 메시지 처리 실패 - Partition: {}, Offset: {}, OrderId: {}, Error: {}",
                     partition, offset, message.getOrderId(), e.getMessage(), e);
             // TODO: DLT(Dead Letter Topic)로 전송하거나 재시도 로직 추가
         }
