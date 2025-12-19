@@ -133,7 +133,7 @@ public class ConcurrencyTest extends BaseConcurrencyTest {
                      successCount.incrementAndGet();
                  } catch (Exception e) {
                      failCount.incrementAndGet();
-                     log.error("쿠폰 발급 실패: {}", e.getMessage(), e);
+                     log.warn("쿠폰 발급 실패: {}", e.getMessage(), e);
                  } finally {
                      latch.countDown();
                  }

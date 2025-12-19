@@ -48,7 +48,7 @@ public class DistributedLockManager {
 
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-            log.error("Lock acquisition interrupted: {}", fullLockKey, e);
+            log.warn("Lock acquisition interrupted: {}", fullLockKey, e);
             throw new LockAcquisitionException("락 획득 중 인터럽트 발생: " + lockKey, e);
         } finally {
             if (lock.isHeldByCurrentThread()) {

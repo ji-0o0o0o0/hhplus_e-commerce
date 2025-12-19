@@ -44,7 +44,7 @@ public class DataPlatformEventHandler {
 
         } catch (Exception e) {
             // Kafka 발행 실패해도 결제는 완료됨 (부가 로직)
-            log.error("[이벤트] Kafka 메시지 발행 실패 - OrderId: {}, Error: {}",
+            log.warn("[이벤트] Kafka 메시지 발행 실패 - OrderId: {}, Error: {}",
                     event.orderId(), e.getMessage(), e);
         }
     }

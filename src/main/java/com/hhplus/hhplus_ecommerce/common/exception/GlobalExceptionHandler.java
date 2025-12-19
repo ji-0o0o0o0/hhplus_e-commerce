@@ -61,7 +61,7 @@ public class GlobalExceptionHandler {
      */
     @ExceptionHandler(Exception.class)
     public ResponseEntity<ApiResponse<Void>> handleException(Exception e) {
-        log.error("Unexpected exception occurred", e);
+        log.warn("Unexpected exception occurred", e);
 
         ApiResponse<Void> response = ApiResponse.error(500, "서버 오류가 발생했습니다");
 

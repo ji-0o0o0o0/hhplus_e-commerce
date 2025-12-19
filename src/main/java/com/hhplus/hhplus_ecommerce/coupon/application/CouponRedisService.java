@@ -66,7 +66,7 @@ public class CouponRedisService {
         } catch (Exception e) {
             // 예상치 못한 예외 - Redis 롤백
             redisCouponRepository.removeIssuedUser(couponId, userId);
-            log.error("[쿠폰 발급 실패 - Redis 롤백] userId={}, couponId={}", userId, couponId, e);
+            log.warn("[쿠폰 발급 실패 - Redis 롤백] userId={}, couponId={}", userId, couponId, e);
             throw new BusinessException(ErrorCode.COUPON_ISSUE_FAILED);
         }
     }
