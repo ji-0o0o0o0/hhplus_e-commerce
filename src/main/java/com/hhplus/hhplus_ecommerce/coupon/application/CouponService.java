@@ -10,6 +10,7 @@ import com.hhplus.hhplus_ecommerce.coupon.CouponStatus;
 import com.hhplus.hhplus_ecommerce.coupon.domain.Coupon;
 import com.hhplus.hhplus_ecommerce.coupon.domain.UserCoupon;
 import com.hhplus.hhplus_ecommerce.coupon.dto.response.CouponIssueResponse;
+import com.hhplus.hhplus_ecommerce.coupon.dto.response.CouponIssueStatusResponse;
 import com.hhplus.hhplus_ecommerce.coupon.dto.response.CouponListResponse;
 import com.hhplus.hhplus_ecommerce.coupon.dto.response.UserCouponDto;
 import com.hhplus.hhplus_ecommerce.coupon.repository.CouponRepository;
@@ -187,6 +188,23 @@ public class CouponService {
                 .toList();
 
         return new CouponListResponse(dtos);
+    }
+
+    /**
+     * 비동기 쿠폰 발급 상태 조회
+     * - requestId로 발급 결과 확인
+     * - DB에서 영구 추적 가능
+     */
+    public CouponIssueStatusResponse getCouponIssueStatus(String requestId) {
+        return userCouponRepository.findByRequestId(requestId)
+                .map(uc -> CouponIssueStatusResponse.completed(
+                        requestId,
+                        uc.getUserId(),
+                        uc.getCouponId(),
+                        uc.getId(),
+                        uc.getName()
+                ))
+                .orElse(CouponIssueStatusResponse.notFound(requestId));
     }
 
 }

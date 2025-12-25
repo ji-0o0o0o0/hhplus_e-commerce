@@ -46,7 +46,7 @@ public class OrderService {
     private final OrderItemRepository orderItemRepository;
 
     //낙관적락을 통한 주문
-    public Order createOrder(Long userId, List<Long> cartItemIds, Long couponId) {
+    public Order createOrder(Long userId, List<Long> cartItemIds, Long userCouponId) {
         List<CartItem> cartItems = new ArrayList<>();
         for (Long cartItemId : cartItemIds) {
             CartItem cartItem = cartItemRepository.findById(cartItemId)
@@ -72,8 +72,9 @@ public class OrderService {
 
         // 쿠폰 할인 계산
         Long discountAmount = 0L;
-        if (couponId != null) {
-            UserCoupon userCoupon = userCouponRepository.findByUserIdAndCouponId(userId, couponId)
+        Long couponId = null;
+        if (userCouponId != null) {
+            UserCoupon userCoupon = userCouponRepository.findById(userCouponId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.COUPON_NOT_FOUND));
 
             if (!userCoupon.isAvailable()) {
@@ -85,9 +86,10 @@ public class OrderService {
                     .mapToLong(OrderItem::getSubtotal)
                     .sum();
             discountAmount = userCoupon.calculateDiscount(totalAmount);
+            couponId = userCoupon.getCouponId();
         }
 
-        Order order = Order.create(userId, orderItems, couponId, discountAmount);
+        Order order = Order.create(userId, orderItems, couponId, userCouponId, discountAmount);
         return orderRepository.save(order);
     }
 
@@ -123,7 +125,7 @@ public class OrderService {
         orderRepository.save(order);
     }
     //분산락을 통한 주문
-    public Order createOrderWithDistributedLock(Long userId, List<Long> cartItemIds, Long couponId) {
+    public Order createOrderWithDistributedLock(Long userId, List<Long> cartItemIds, Long userCouponId) {
         List<CartItem> cartItems = new ArrayList<>();
         for (Long cartItemId : cartItemIds) {
             CartItem cartItem = cartItemRepository.findById(cartItemId)
@@ -148,8 +150,9 @@ public class OrderService {
         }
 
         Long discountAmount = 0L;
-        if (couponId != null) {
-            UserCoupon userCoupon = userCouponRepository.findByUserIdAndCouponId(userId, couponId)
+        Long couponId = null;
+        if (userCouponId != null) {
+            UserCoupon userCoupon = userCouponRepository.findById(userCouponId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.COUPON_NOT_FOUND));
 
             if (!userCoupon.isAvailable()) {
@@ -160,10 +163,11 @@ public class OrderService {
                     .mapToLong(OrderItem::getSubtotal)
                     .sum();
             discountAmount = userCoupon.calculateDiscount(totalAmount);
+            couponId = userCoupon.getCouponId();
         }
 
-        // 4. 주문 생성 (83-84번째 줄과 동일)
-        Order order = Order.create(userId, orderItems, couponId, discountAmount);
+        // 주문 생성
+        Order order = Order.create(userId, orderItems, couponId, userCouponId, discountAmount);
         orderRepository.save(order);
         orderItems.forEach(item -> item.setOrderId(order.getId()));
         orderItemRepository.saveAll(orderItems);
@@ -233,8 +237,8 @@ public class OrderService {
         );
     }
 
-    public OrderResponse createOrderWithResponse(Long userId, List<Long> cartItemIds, Long couponId) {
-        Order order = createOrderWithDistributedLock(userId, cartItemIds, couponId);
+    public OrderResponse createOrderWithResponse(Long userId, List<Long> cartItemIds, Long userCouponId) {
+        Order order = createOrderWithDistributedLock(userId, cartItemIds, userCouponId);
 
         List<OrderItemDto> orderItemDtos = convertToOrderItemDtos(order);
 
@@ -251,7 +255,7 @@ public class OrderService {
     }
 
     @Transactional
-    public OrderResponse createOrderFromEntireCart(Long userId, Long couponId) {
+    public OrderResponse createOrderFromEntireCart(Long userId, Long userCouponId) {
 
         List<CartItem> cartItems = cartItemRepository.findByUserId(userId);
 
@@ -262,7 +266,7 @@ public class OrderService {
                 .map(CartItem::getId)
                 .toList();
 
-        OrderResponse orderResponse = createOrderWithResponse(userId, cartItemIds, couponId);
+        OrderResponse orderResponse = createOrderWithResponse(userId, cartItemIds, userCouponId);
 
         cartItemRepository.deleteAllByUserId(userId);
 
@@ -361,7 +365,18 @@ public class OrderService {
                 // 재고 복구 (낙관적 락 + 재시도)
                 for (OrderItem item : items) {
                     increaseProductStock(item.getProductId(), item.getQuantity());
+                }
 
+                // 쿠폰 롤백 (사용 전 상태로 복원)
+                if (order.getUserCouponId() != null) {
+                    UserCoupon userCoupon = userCouponRepository.findById(order.getUserCouponId())
+                            .orElse(null);
+                    if (userCoupon != null) {
+                        userCoupon.rollback();
+                        userCouponRepository.save(userCoupon);
+                        log.info("[결제 타임아웃] 쿠폰 롤백 완료 - OrderId: {}, UserCouponId: {}",
+                                order.getId(), order.getUserCouponId());
+                    }
                 }
 
                 orderRepository.save(order);

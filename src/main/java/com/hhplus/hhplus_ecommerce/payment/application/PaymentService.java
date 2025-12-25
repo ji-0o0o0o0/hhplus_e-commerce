@@ -73,9 +73,11 @@ public class PaymentService {
 
         pointService.usePointWithDistributedLock(userId, order.getFinalAmount());
 
-        if (order.getCouponId() != null) {
-            UserCoupon userCoupon = userCouponRepository.findByUserIdAndCouponId(userId, order.getCouponId())
+        // 쿠폰 사용 처리
+        if (order.getUserCouponId() != null) {
+            UserCoupon userCoupon = userCouponRepository.findById(order.getUserCouponId())
                     .orElseThrow(() -> new BusinessException(ErrorCode.COUPON_NOT_FOUND));
+
             userCoupon.use();
             userCouponRepository.save(userCoupon);
         }

@@ -8,6 +8,7 @@ import com.hhplus.hhplus_ecommerce.coupon.domain.UserCoupon;
 import com.hhplus.hhplus_ecommerce.coupon.dto.request.IssueCouponRequest;
 import com.hhplus.hhplus_ecommerce.coupon.dto.response.CouponIssueAsyncResponse;
 import com.hhplus.hhplus_ecommerce.coupon.dto.response.CouponIssueResponse;
+import com.hhplus.hhplus_ecommerce.coupon.dto.response.CouponIssueStatusResponse;
 import com.hhplus.hhplus_ecommerce.coupon.dto.response.CouponListResponse;
 import com.hhplus.hhplus_ecommerce.coupon.repository.RedisCouponRepository;
 import lombok.RequiredArgsConstructor;
@@ -75,6 +76,20 @@ public class CouponController implements CouponApi {
         CouponListResponse response = couponService.getUserCouponsWithDetails(userId, status);
         return ResponseEntity.ok(ApiResponse.success(response));
 
+    }
+
+    /**
+     * 비동기 쿠폰 발급 상태 조회
+     * - requestId로 발급 결과 확인
+     * - 발급 완료 여부와 발급된 쿠폰 정보 반환
+     */
+    @GetMapping("/issue-status/{requestId}")
+    public ResponseEntity<ApiResponse<CouponIssueStatusResponse>> getCouponIssueStatus(
+            @PathVariable String requestId
+    ) {
+        CouponIssueStatusResponse response =
+                couponService.getCouponIssueStatus(requestId);
+        return ResponseEntity.ok(ApiResponse.success(response));
     }
 
 }
