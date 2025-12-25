@@ -15,19 +15,24 @@ import com.hhplus.hhplus_ecommerce.order.dto.response.OrderItemDto;
 import com.hhplus.hhplus_ecommerce.order.dto.response.OrderListDto;
 import com.hhplus.hhplus_ecommerce.order.dto.response.OrderListResponse;
 import com.hhplus.hhplus_ecommerce.order.dto.response.OrderResponse;
+import com.hhplus.hhplus_ecommerce.order.repository.OrderItemRepository;
 import com.hhplus.hhplus_ecommerce.order.repository.OrderRepository;
 import com.hhplus.hhplus_ecommerce.product.domain.Product;
 import com.hhplus.hhplus_ecommerce.product.repository.ProductRepository;
 import jakarta.persistence.OptimisticLockException;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderService {
@@ -38,9 +43,10 @@ public class OrderService {
     private final UserCouponRepository userCouponRepository;
     private final DistributedLockManager lockManager;
     private final OrderTransactionService  orderTransactionService;
+    private final OrderItemRepository orderItemRepository;
 
     //낙관적락을 통한 주문
-    public Order createOrder(Long userId, List<Long> cartItemIds, Long couponId) {
+    public Order createOrder(Long userId, List<Long> cartItemIds, Long userCouponId) {
         List<CartItem> cartItems = new ArrayList<>();
         for (Long cartItemId : cartItemIds) {
             CartItem cartItem = cartItemRepository.findById(cartItemId)
@@ -66,8 +72,9 @@ public class OrderService {
 
         // 쿠폰 할인 계산
         Long discountAmount = 0L;
-        if (couponId != null) {
-            UserCoupon userCoupon = userCouponRepository.findByUserIdAndCouponId(userId, couponId)
+        Long couponId = null;
+        if (userCouponId != null) {
+            UserCoupon userCoupon = userCouponRepository.findById(userCouponId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.COUPON_NOT_FOUND));
 
             if (!userCoupon.isAvailable()) {
@@ -79,9 +86,10 @@ public class OrderService {
                     .mapToLong(OrderItem::getSubtotal)
                     .sum();
             discountAmount = userCoupon.calculateDiscount(totalAmount);
+            couponId = userCoupon.getCouponId();
         }
 
-        Order order = Order.create(userId, orderItems, couponId, discountAmount);
+        Order order = Order.create(userId, orderItems, couponId, userCouponId, discountAmount);
         return orderRepository.save(order);
     }
 
@@ -117,7 +125,7 @@ public class OrderService {
         orderRepository.save(order);
     }
     //분산락을 통한 주문
-    public Order createOrderWithDistributedLock(Long userId, List<Long> cartItemIds, Long couponId) {
+    public Order createOrderWithDistributedLock(Long userId, List<Long> cartItemIds, Long userCouponId) {
         List<CartItem> cartItems = new ArrayList<>();
         for (Long cartItemId : cartItemIds) {
             CartItem cartItem = cartItemRepository.findById(cartItemId)
@@ -142,8 +150,9 @@ public class OrderService {
         }
 
         Long discountAmount = 0L;
-        if (couponId != null) {
-            UserCoupon userCoupon = userCouponRepository.findByUserIdAndCouponId(userId, couponId)
+        Long couponId = null;
+        if (userCouponId != null) {
+            UserCoupon userCoupon = userCouponRepository.findById(userCouponId)
                     .orElseThrow(() -> new BusinessException(ErrorCode.COUPON_NOT_FOUND));
 
             if (!userCoupon.isAvailable()) {
@@ -154,11 +163,15 @@ public class OrderService {
                     .mapToLong(OrderItem::getSubtotal)
                     .sum();
             discountAmount = userCoupon.calculateDiscount(totalAmount);
+            couponId = userCoupon.getCouponId();
         }
 
-        // 4. 주문 생성 (83-84번째 줄과 동일)
-        Order order = Order.create(userId, orderItems, couponId, discountAmount);
-        return orderRepository.save(order);
+        // 주문 생성
+        Order order = Order.create(userId, orderItems, couponId, userCouponId, discountAmount);
+        orderRepository.save(order);
+        orderItems.forEach(item -> item.setOrderId(order.getId()));
+        orderItemRepository.saveAll(orderItems);
+        return order;
     }
 
     //분산락 통한 주문 취소
@@ -224,8 +237,8 @@ public class OrderService {
         );
     }
 
-    public OrderResponse createOrderWithResponse(Long userId, List<Long> cartItemIds, Long couponId) {
-        Order order = createOrderWithDistributedLock(userId, cartItemIds, couponId);
+    public OrderResponse createOrderWithResponse(Long userId, List<Long> cartItemIds, Long userCouponId) {
+        Order order = createOrderWithDistributedLock(userId, cartItemIds, userCouponId);
 
         List<OrderItemDto> orderItemDtos = convertToOrderItemDtos(order);
 
@@ -241,7 +254,8 @@ public class OrderService {
         );
     }
 
-    public OrderResponse createOrderFromEntireCart(Long userId, Long couponId) {
+    @Transactional
+    public OrderResponse createOrderFromEntireCart(Long userId, Long userCouponId) {
 
         List<CartItem> cartItems = cartItemRepository.findByUserId(userId);
 
@@ -252,7 +266,7 @@ public class OrderService {
                 .map(CartItem::getId)
                 .toList();
 
-        OrderResponse orderResponse = createOrderWithResponse(userId, cartItemIds, couponId);
+        OrderResponse orderResponse = createOrderWithResponse(userId, cartItemIds, userCouponId);
 
         cartItemRepository.deleteAllByUserId(userId);
 
@@ -315,5 +329,70 @@ public class OrderService {
                 .toList();
     }
 
+    /**
+     * 결제 타임아웃된 주문 일괄 취소
+     * - PENDING 상태의 주문 중 생성 시간이 timeout 기준 이전인 주문 취소
+     * - 재고 자동 복구
+     * @param timeoutMinutes 타임아웃 기준 (분)
+     * @return 취소된 주문 수
+     */
+    @Transactional
+    public int cancelTimeoutOrders(int timeoutMinutes) {
+        LocalDateTime timeoutThreshold = LocalDateTime.now().minusMinutes(timeoutMinutes);
+
+        // PENDING 상태이면서 생성 시간이 timeout 기준 이전인 주문 조회
+        List<Order> timeoutOrders = orderRepository.findByStatusAndCreatedAtBefore(
+                OrderStatus.PENDING,
+                timeoutThreshold
+        );
+
+        if (timeoutOrders.isEmpty()) {
+            return 0;
+        }
+
+
+        log.info("[결제 타임아웃] {} 건의 타임아웃 주문 발견 (타임아웃 기준: {}분)",
+                timeoutOrders.size(), timeoutMinutes);
+
+        int canceledCount = 0;
+        for (Order order : timeoutOrders) {
+            try {
+                // 주문 상태를 CANCELLED로 변경
+                order.cancel();
+
+                List<OrderItem> items =
+                        orderItemRepository.findByOrderId(order.getId());
+                // 재고 복구 (낙관적 락 + 재시도)
+                for (OrderItem item : items) {
+                    increaseProductStock(item.getProductId(), item.getQuantity());
+                }
+
+                // 쿠폰 롤백 (사용 전 상태로 복원)
+                if (order.getUserCouponId() != null) {
+                    UserCoupon userCoupon = userCouponRepository.findById(order.getUserCouponId())
+                            .orElse(null);
+                    if (userCoupon != null) {
+                        userCoupon.rollback();
+                        userCouponRepository.save(userCoupon);
+                        log.info("[결제 타임아웃] 쿠폰 롤백 완료 - OrderId: {}, UserCouponId: {}",
+                                order.getId(), order.getUserCouponId());
+                    }
+                }
+
+                orderRepository.save(order);
+                canceledCount++;
+
+                log.info("[결제 타임아웃] 주문 취소 완료 - OrderId: {}, UserId: {}, 생성시간: {}",
+                        order.getId(), order.getUserId(), order.getCreatedAt());
+
+            } catch (Exception e) {
+                log.error("[결제 타임아웃] 주문 취소 실패 - OrderId: {}, Error: {}",
+                        order.getId(), e.getMessage(), e);
+            }
+        }
+
+        log.info("[결제 타임아웃] 총 {}건 취소 완료 (처리 대상: {}건)", canceledCount, timeoutOrders.size());
+        return canceledCount;
+    }
 
 }

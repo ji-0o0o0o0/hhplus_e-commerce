@@ -27,11 +27,19 @@ public class Order extends BaseTimeEntity {
     private Long userId;
 
     @Column
-    private Long couponId;
+    private Long couponId;        // 어떤 쿠폰을 사용했는지 (조회 편의성)
+
+    @Column
+    private Long userCouponId;    // 어떤 발급된 쿠폰을 사용했는지 (롤백용)
 
     @Transient
     @Builder.Default
     private List<OrderItem> items = new ArrayList<>();
+
+    // items를 외부에서 설정할 수 있도록 setter 추가 (DB 조회 후 설정용)
+    public void setItems(List<OrderItem> items) {
+        this.items = items != null ? new ArrayList<>(items) : new ArrayList<>();
+    }
 
     @Column(nullable = false)
     private Long totalAmount;
@@ -48,11 +56,12 @@ public class Order extends BaseTimeEntity {
 
 
 
-    public static Order create(Long userId, List<OrderItem> items, Long couponId, Long discountAmount) {
+    public static Order create(Long userId, List<OrderItem> items, Long couponId, Long userCouponId, Long discountAmount) {
         Order order = Order.builder()
                 .userId(userId)
                 .items(items != null ? new ArrayList<>(items) : new ArrayList<>())
                 .couponId(couponId)
+                .userCouponId(userCouponId)
                 .discountAmount(discountAmount != null ? discountAmount : 0)
                 .status(OrderStatus.PENDING)
                 .build();

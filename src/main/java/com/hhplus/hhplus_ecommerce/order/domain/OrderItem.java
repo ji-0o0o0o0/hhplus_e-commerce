@@ -63,4 +63,8 @@ public class OrderItem {
     public Long calculateSubtotal() {
         return this.unitPrice * this.quantity;
     }
+
+    public void setOrderId(Long orderId) {
+        this.orderId = orderId;
+    }
 }

@@ -29,6 +29,9 @@ public class UserCoupon {
     @Column(nullable = false)
     private Long couponId;
 
+    @Column(length = 100)
+    private String requestId;  // Kafka 비동기 발급 시 요청 ID (멱등성 키)
+
     @Column(nullable = false, length = 100)
     private String name;
 
@@ -50,9 +53,14 @@ public class UserCoupon {
     private LocalDateTime expiresAt;
 
     public static UserCoupon issue(Long userId, Coupon coupon) {
+        return issue(userId, coupon, null);
+    }
+
+    public static UserCoupon issue(Long userId, Coupon coupon, String requestId) {
         return UserCoupon.builder()
                 .userId(userId)
                 .couponId(coupon.getId())
+                .requestId(requestId)
                 .name(coupon.getName())
                 .discountRate(coupon.getDiscountRate())
                 .status(CouponStatus.AVAILABLE)
@@ -76,6 +84,13 @@ public class UserCoupon {
         }
         this.status = CouponStatus.USED;
         this.usedAt = LocalDateTime.now();
+    }
+
+    public void rollback() {
+        if (this.status == CouponStatus.USED) {
+            this.status = CouponStatus.AVAILABLE;
+            this.usedAt = null;
+        }
     }
 
     public void expire() {

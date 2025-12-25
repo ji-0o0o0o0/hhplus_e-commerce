@@ -38,6 +38,9 @@ dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-redis'
     implementation 'org.redisson:redisson-spring-boot-starter:3.27.2'
 
+    // Kafka
+    implementation 'org.springframework.kafka:spring-kafka'
+
     // Database
     runtimeOnly 'com.mysql:mysql-connector-j'
 
@@ -53,9 +56,12 @@ dependencies {
 
     // Test
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
+    testImplementation 'org.springframework.kafka:spring-kafka-test'
     testImplementation 'org.testcontainers:testcontainers'
     testImplementation 'org.testcontainers:junit-jupiter'
     testImplementation 'org.testcontainers:mysql'
+    testImplementation 'org.testcontainers:kafka'
+    testImplementation 'org.awaitility:awaitility:4.2.0'
     testImplementation('it.ozimov:embedded-redis:0.7.3') {
         exclude group: 'org.slf4j', module: 'slf4j-simple'
     }

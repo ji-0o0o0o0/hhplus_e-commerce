@@ -1,18 +1,13 @@
 package com.hhplus.hhplus_ecommerce.common.event.handler;
 
 import com.hhplus.hhplus_ecommerce.common.event.PaymentCompletedEvent;
-import com.hhplus.hhplus_ecommerce.coupon.domain.Coupon;
-import com.hhplus.hhplus_ecommerce.coupon.repository.CouponRepository;
-import com.hhplus.hhplus_ecommerce.external.DataPlatformClient;
-import com.hhplus.hhplus_ecommerce.external.dto.OrderDataDto;
+import com.hhplus.hhplus_ecommerce.common.kafka.message.PaymentCompletedMessage;
+import com.hhplus.hhplus_ecommerce.common.kafka.producer.KafkaProducerService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.event.TransactionPhase;
 import org.springframework.transaction.event.TransactionalEventListener;
-
-import java.util.stream.Collectors;
 
 
 @Slf4j
@@ -20,57 +15,37 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class DataPlatformEventHandler {
 
-    private final DataPlatformClient dataPlatformClient;
-    private final CouponRepository couponRepository;
+    private final KafkaProducerService kafkaProducerService;
 
-    @Async
+    /**
+     * 결제 완료 이벤트를 Kafka로 발행
+     * - @TransactionalEventListener(AFTER_COMMIT): 트랜잭션 커밋 후 실행
+     * - Kafka에 메시지 발행 후 책임 종료
+     * - 데이터 플랫폼, 알림 서비스 등은 각자 Kafka Consumer로 메시지 소비
+     */
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT)
     public void handlePaymentCompleted(PaymentCompletedEvent event) {
         try {
             log.info("[이벤트] 결제 완료 이벤트 수신 - OrderId: {}", event.orderId());
 
-            // 쿠폰 정보 조회
-            OrderDataDto.CouponData couponData = null;
-            if (event.couponId() != null) {
-                Coupon coupon = couponRepository.findById(event.couponId()).orElse(null);
-                if (coupon != null) {
-                    couponData = new OrderDataDto.CouponData(
-                            coupon.getId(),
-                            coupon.getName()
-                    );
-                }
-            }
-
-            // 주문 아이템 변환
-            var items = event.items().stream()
-                    .map(item -> new OrderDataDto.OrderItemData(
-                            item.productId(),
-                            item.productName(),
-                            item.quantity(),
-                            item.unitPrice()
-                    ))
-                    .collect(Collectors.toList());
-
-            // 데이터 플랫폼 전송 DTO 생성
-            OrderDataDto orderData = new OrderDataDto(
+            // Kafka 메시지 생성 (items는 Consumer에서 orderId로 조회)
+            PaymentCompletedMessage message = new PaymentCompletedMessage(
                     event.orderId(),
                     event.userId(),
                     event.totalAmount(),
                     event.discountAmount(),
                     event.finalAmount(),
-                    couponData,
-                    "COMPLETED",
-                    items,
+                    event.couponId(),
                     event.completedAt()
             );
 
-            // 데이터 플랫폼 전송
-            dataPlatformClient.sendOrderData(orderData);
+            // Kafka로 메시지 발행
+            kafkaProducerService.sendPaymentCompletedMessage(message);
 
         } catch (Exception e) {
-            // 데이터 플랫폼 전송 실패해도 결제는 완료됨 (부가 로직)
-            log.warn("[이벤트] 데이터 플랫폼 전송 실패 - OrderId: {}, Error: {}",
-                    event.orderId(), e.getMessage());
+            // Kafka 발행 실패해도 결제는 완료됨 (부가 로직)
+            log.warn("[이벤트] Kafka 메시지 발행 실패 - OrderId: {}, Error: {}",
+                    event.orderId(), e.getMessage(), e);
         }
     }
 }
