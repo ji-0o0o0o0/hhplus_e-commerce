@@ -60,7 +60,7 @@ public class ProductService {
         );
     }
 
-    @Cacheable(value = "productDetail", key = "#productId", sync = true)
+    // @Cacheable(value = "productDetail", key = "#productId", sync = true)  // 임시 비활성화 (ClassCastException 회피)
     public ProductDetailResponse getProductDetail(Long productId) {
         Product product = getProduct(productId);
 

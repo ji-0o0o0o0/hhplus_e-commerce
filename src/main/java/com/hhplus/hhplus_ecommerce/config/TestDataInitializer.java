@@ -8,7 +8,6 @@ import com.hhplus.hhplus_ecommerce.product.domain.Product;
 import com.hhplus.hhplus_ecommerce.product.repository.ProductRepository;
 import com.hhplus.hhplus_ecommerce.user.domain.User;
 import com.hhplus.hhplus_ecommerce.user.repository.UserRepository;
-import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -24,7 +23,7 @@ public class TestDataInitializer {
     private final ProductRepository productRepository;
     private final CouponRepository couponRepository;
 
-    @PostConstruct
+    //@PostConstruct
     public void init() {
         initUsers();
         initProducts();

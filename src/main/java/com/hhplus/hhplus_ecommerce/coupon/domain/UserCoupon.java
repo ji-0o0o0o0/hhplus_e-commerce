@@ -13,7 +13,14 @@ import org.hibernate.annotations.CreationTimestamp;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "user_coupons")
+@Table(
+    name = "user_coupons",
+    indexes = {
+        @Index(name = "idx_user_coupon", columnList = "user_id, coupon_id", unique = true),
+        @Index(name = "idx_request_id", columnList = "request_id", unique = true),
+        @Index(name = "idx_user_status", columnList = "user_id, status")
+    }
+)
 @Getter
 @Builder
 @NoArgsConstructor

@@ -8,7 +8,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @Entity
-@Table(name = "cart_items")
+@Table(
+    name = "cart_items",
+    indexes = {
+        @Index(name = "idx_cart_user", columnList = "user_id"),
+        @Index(name = "idx_cart_user_product", columnList = "user_id, product_id")
+    }
+)
 @Getter
 @Builder
 @NoArgsConstructor
