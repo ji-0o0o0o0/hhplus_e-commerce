@@ -35,8 +35,8 @@ const productViewSuccess = new Counter('product_view_success');
 const orderSuccess = new Counter('order_success');
 const pointChargeSuccess = new Counter('point_charge_success');
 
-// 테스트 설정 (최대 500 VU까지 점진적 증가)
-export const options = createStressTestOptions(500, 300);
+// 테스트 설정 (최대 500 VU까지 점진적 증가, 2분으로 단축)
+export const options = createStressTestOptions(500, 120);
 
 // 테스트 데이터
 const COUPON_ID = 1;
@@ -73,8 +73,8 @@ export default function () {
 }
 
 function issueCoupon(userId) {
-    // Redis 비동기 발급 사용 (주 사용 API)
-    const url = `${BASE_URL}/api/coupons/${COUPON_ID}/issue/async`;
+    // Kafka 비동기 발급 사용 (Redis 초기화 이슈로 변경)
+    const url = `${BASE_URL}/api/coupons/${COUPON_ID}/issue/kafka`;
     const payload = JSON.stringify({ userId });
 
     const startTime = Date.now();
