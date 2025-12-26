@@ -63,13 +63,16 @@ VALUES
     ('부하테스트 상품9', '테스트용 상품', 45000, 500, '도서', NOW(), NOW()),
     ('부하테스트 상품10', '테스트용 상품', 55000, 400, '가구', NOW(), NOW());
 
--- 6. 쿠폰 생성 (2개, 선착순 1000명)
+-- 6. 쿠폰 생성 (3개, 선착순)
 INSERT INTO coupons (name, discount_rate, total_quantity, issued_quantity, validity_days, start_date, end_date, created_at, updated_at)
 VALUES
     ('부하테스트 쿠폰 20% 1000명', 20, 1000, 0, 30, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), NOW(), NOW());
 INSERT INTO coupons (name, discount_rate, total_quantity, issued_quantity, validity_days, start_date, end_date, created_at, updated_at)
 VALUES
     ('부하테스트 쿠폰 30% 1000명', 30, 1000, 0, 30, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), NOW(), NOW());
+INSERT INTO coupons (name, discount_rate, total_quantity, issued_quantity, validity_days, start_date, end_date, created_at, updated_at)
+VALUES
+    ('시나리오3 복합트래픽 쿠폰 15% 500명', 15, 500, 0, 30, NOW(), DATE_ADD(NOW(), INTERVAL 30 DAY), NOW(), NOW());
 
 -- 7. 장바구니 초기 데이터 생성 (주문 테스트용, 사용자 1-50번에게 상품 1-5번 각 1개씩)
 INSERT INTO cart_items (user_id, product_id, quantity, created_at, updated_at)

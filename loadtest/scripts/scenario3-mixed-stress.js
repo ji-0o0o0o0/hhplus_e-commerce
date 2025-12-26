@@ -39,7 +39,7 @@ const pointChargeSuccess = new Counter('point_charge_success');
 export const options = createStressTestOptions(500, 120);
 
 // 테스트 데이터
-const COUPON_ID = 1;
+const COUPON_ID = 3;  // 시나리오3 전용 쿠폰 (500개)
 const PRODUCT_IDS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
 const USER_COUNT = 2000;
 
@@ -74,7 +74,7 @@ export default function () {
 
 function issueCoupon(userId) {
     // Kafka 비동기 발급 사용 (Redis 초기화 이슈로 변경)
-    const url = `${BASE_URL}/api/coupons/${COUPON_ID}/issue/kafka`;
+    const url = `${BASE_URL}/api/coupons/${COUPON_ID}/issue-kafka`;
     const payload = JSON.stringify({ userId });
 
     const startTime = Date.now();
@@ -84,10 +84,10 @@ function issueCoupon(userId) {
     couponIssueDuration.add(duration);
 
     check(response, {
-        '[쿠폰] status is 201 or 400': (r) => r.status === 201 || r.status === 400,
+        '[쿠폰] status is 202 or 409': (r) => r.status === 202 || r.status === 409,
     });
 
-    if (response.status === 201) {
+    if (response.status === 202) {
         couponIssueSuccess.add(1);
     }
 }
