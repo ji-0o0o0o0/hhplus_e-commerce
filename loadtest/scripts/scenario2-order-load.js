@@ -78,16 +78,16 @@ export default function (data) {
         return;
     }
 
-    sleep(0.5);
+    sleep(0.3);
 
     // 2. 주문 생성 (포인트 결제)
-    createOrder(userId, [cartItemId]);
+    createOrder(userId);
 
-    sleep(1);
+    sleep(0.5);
 }
 
 function addToCart(userId, productId, quantity) {
-    const url = `${BASE_URL}/api/cart`;
+    const url = `${BASE_URL}/api/carts/items`;
     const payload = JSON.stringify({ userId, productId, quantity });
 
     const response = http.post(url, payload, { headers });
@@ -98,7 +98,7 @@ function addToCart(userId, productId, quantity) {
 
     if (response.status === 201) {
         const body = JSON.parse(response.body);
-        return body.data.id;
+        return body.data.cartItemId;
     }
 
     return null;
@@ -165,7 +165,7 @@ export function teardown(data) {
 
     // 포인트 잔액 확인 (샘플)
     data.userIds.slice(0, 5).forEach(userId => {
-        const url = `${BASE_URL}/api/points/${userId}/balance`;
+        const url = `${BASE_URL}/api/points?userId=${userId}`;
         const response = http.get(url, { headers });
 
         if (response.status === 200) {
